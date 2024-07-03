@@ -30,6 +30,14 @@ fn match_line(data: &str) -> Option<Result<FieldInfo>> {
             FieldCase::Const(data),
         ));
     }
+    if let Some((info, data)) = match_default_string(data) {
+        return Some(FieldInfo::new(
+            &info.field_type,
+            &info.field_name,
+            FieldCase::Default(data),
+        ));
+    }
+
     let data = match strip_useless(data) {
         Ok(v) => v,
         Err(v) => return Some(Err(v)),
@@ -66,6 +74,14 @@ fn match_line(data: &str) -> Option<Result<FieldInfo>> {
             FieldCase::Const(data),
         ));
     }
+    if let Some((info, data)) = match_default_numeric(data) {
+        return Some(FieldInfo::new(
+            &info.field_type,
+            &info.field_name,
+            FieldCase::Default(data),
+        ));
+    }
+
     Some(Err(Error::BadMessageContent(data.into())))
 }
 
@@ -73,6 +89,27 @@ fn match_const_string(data: &str) -> Option<(FieldLine, String)> {
     lazy_static! {
         static ref MATCHER: String = format!(
             r"^(string){}{}{}={}(.*)$",
+            ANY_WHITESPACE, FIELD_NAME, IGNORE_WHITESPACE, IGNORE_WHITESPACE
+        );
+        static ref RE: Regex = Regex::new(&MATCHER).unwrap();
+    }
+    let captures = match RE.captures(data) {
+        Some(v) => v,
+        None => return None,
+    };
+    Some((
+        FieldLine {
+            field_type: captures.get(1).unwrap().as_str().into(),
+            field_name: captures.get(2).unwrap().as_str().into(),
+        },
+        captures.get(3).unwrap().as_str().into(),
+    ))
+}
+
+fn match_default_string(data: &str) -> Option<(FieldLine, String)> {
+    lazy_static! {
+        static ref MATCHER: String = format!(
+            r"^(string){}{}{} {}(.*)$",
             ANY_WHITESPACE, FIELD_NAME, IGNORE_WHITESPACE, IGNORE_WHITESPACE
         );
         static ref RE: Regex = Regex::new(&MATCHER).unwrap();
@@ -148,6 +185,27 @@ fn match_const_numeric(data: &str) -> Option<(FieldLine, String)> {
     lazy_static! {
         static ref MATCHER: String = format!(
             r"^{}{}{}{}={}(-?[0-9\.eE\+\-]+)$",
+            FIELD_TYPE, ANY_WHITESPACE, FIELD_NAME, IGNORE_WHITESPACE, IGNORE_WHITESPACE
+        );
+        static ref RE: Regex = Regex::new(&MATCHER).unwrap();
+    }
+    let captures = match RE.captures(data) {
+        Some(v) => v,
+        None => return None,
+    };
+    Some((
+        FieldLine {
+            field_type: captures.get(1).unwrap().as_str().into(),
+            field_name: captures.get(2).unwrap().as_str().into(),
+        },
+        captures.get(3).unwrap().as_str().into(),
+    ))
+}
+
+fn match_default_numeric(data: &str) -> Option<(FieldLine, String)> {
+    lazy_static! {
+        static ref MATCHER: String = format!(
+            r"^{}{}{}{} {}(-?[0-9\.eE\+\-]+)$",
             FIELD_TYPE, ANY_WHITESPACE, FIELD_NAME, IGNORE_WHITESPACE, IGNORE_WHITESPACE
         );
         static ref RE: Regex = Regex::new(&MATCHER).unwrap();

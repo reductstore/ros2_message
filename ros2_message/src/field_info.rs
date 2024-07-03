@@ -29,6 +29,12 @@ pub enum FieldCase {
     ///
     /// Example: `float32 FOO=123.4`.
     Const(String),
+    /// Field describing a single item with a default value.
+    ///
+    /// The contained `String` is the unparsed value.
+    ///
+    /// Example: `float32 foo 123.4`.
+    Default(String),
 }
 
 #[derive(Clone, Debug)]
@@ -57,6 +63,7 @@ pub struct FieldInfo {
     name: String,
     case: FieldCase,
     const_value: Uncompared<Option<Value>>,
+    default_value: Uncompared<Option<Value>>,
 }
 
 impl fmt::Display for FieldInfo {
@@ -66,6 +73,7 @@ impl fmt::Display for FieldInfo {
             FieldCase::Vector => write!(f, "{}[] {}", self.datatype, self.name),
             FieldCase::Array(l) => write!(f, "{}[{}] {}", self.datatype, l, self.name),
             FieldCase::Const(val) => write!(f, "{} {}={}", self.datatype, self.name, val),
+            FieldCase::Default(val) => write!(f, "{} {} {}", self.datatype, self.name, val),
         }
     }
 }
@@ -102,39 +110,63 @@ impl FieldInfo {
     }
 
     fn evaluate(datatype: DataType, name: String, case: FieldCase) -> Result<FieldInfo> {
+        fn parse_datatype_const(dtype: &DataType, raw_value: &str) -> Option<Value> {
+            match dtype {
+                DataType::Bool => Some(Value::Bool(raw_value != "0")),
+                DataType::I8(_) => raw_value.parse().ok().map(Value::I8),
+                DataType::I16 => raw_value.parse().ok().map(Value::I16),
+                DataType::I32 => raw_value.parse().ok().map(Value::I32),
+                DataType::I64 => raw_value.parse().ok().map(Value::I64),
+                DataType::U8(_) => raw_value.parse().ok().map(Value::U8),
+                DataType::U16 => raw_value.parse().ok().map(Value::U16),
+                DataType::U32 => raw_value.parse().ok().map(Value::U32),
+                DataType::U64 => raw_value.parse().ok().map(Value::U64),
+                DataType::F32 => raw_value.parse().ok().map(Value::F32),
+                DataType::F64 => raw_value.parse().ok().map(Value::F64),
+                DataType::String => Some(Value::String(raw_value.to_owned())),
+                DataType::Time
+                | DataType::Duration
+                | DataType::LocalMessage(_)
+                | DataType::GlobalMessage(_) => None,
+            }
+        }
+
         let const_value = match &case {
-            FieldCase::Const(raw_value) => Some(
-                match &datatype {
-                    DataType::Bool => Some(Value::Bool(raw_value != "0")),
-                    DataType::I8(_) => raw_value.parse().ok().map(Value::I8),
-                    DataType::I16 => raw_value.parse().ok().map(Value::I16),
-                    DataType::I32 => raw_value.parse().ok().map(Value::I32),
-                    DataType::I64 => raw_value.parse().ok().map(Value::I64),
-                    DataType::U8(_) => raw_value.parse().ok().map(Value::U8),
-                    DataType::U16 => raw_value.parse().ok().map(Value::U16),
-                    DataType::U32 => raw_value.parse().ok().map(Value::U32),
-                    DataType::U64 => raw_value.parse().ok().map(Value::U64),
-                    DataType::F32 => raw_value.parse().ok().map(Value::F32),
-                    DataType::F64 => raw_value.parse().ok().map(Value::F64),
-                    DataType::String => Some(Value::String(raw_value.clone())),
-                    DataType::Time
-                    | DataType::Duration
-                    | DataType::LocalMessage(_)
-                    | DataType::GlobalMessage(_) => None,
-                }
-                .ok_or_else(|| Error::BadConstant {
-                    name: name.clone(),
-                    datatype: format!("{}", datatype),
-                    value: raw_value.into(),
-                })?,
-            ),
-            FieldCase::Unit | FieldCase::Vector | FieldCase::Array(_) => None,
+            FieldCase::Const(raw_value) => {
+                Some(parse_datatype_const(&datatype, raw_value).ok_or_else(|| {
+                    Error::BadConstant {
+                        name: name.clone(),
+                        datatype: format!("{}", datatype),
+                        value: raw_value.into(),
+                    }
+                })?)
+            }
+
+            FieldCase::Unit | FieldCase::Vector | FieldCase::Array(_) | FieldCase::Default(_) => {
+                None
+            }
         };
+        let default_value = match &case {
+            FieldCase::Default(raw_value) => {
+                Some(parse_datatype_const(&datatype, raw_value).ok_or_else(|| {
+                    Error::BadConstant {
+                        name: name.clone(),
+                        datatype: format!("{}", datatype),
+                        value: raw_value.into(),
+                    }
+                })?)
+            }
+            FieldCase::Unit | FieldCase::Vector | FieldCase::Array(_) | FieldCase::Const(_) => None,
+        };
+
         Ok(FieldInfo {
             datatype,
             name,
             case,
             const_value: Uncompared { inner: const_value },
+            default_value: Uncompared {
+                inner: default_value,
+            },
         })
     }
 
@@ -247,6 +279,7 @@ impl FieldInfo {
         let datatype = self.datatype.md5_str(package, hashes)?;
         Ok(match (self.datatype.is_builtin(), &self.case) {
             (_, FieldCase::Const(v)) => format!("{} {}={}", datatype, self.name, v),
+            (_, FieldCase::Default(v)) => format!("{} {} {}", datatype, self.name, v),
             (false, _) | (_, &FieldCase::Unit) => format!("{} {}", datatype, self.name),
             (true, &FieldCase::Vector) => format!("{}[] {}", datatype, self.name),
             (true, &FieldCase::Array(l)) => format!("{}[{}] {}", datatype, l, self.name),

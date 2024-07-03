@@ -144,6 +144,12 @@ impl DynamicMsg {
             r.read_to_end(&mut buf)?;
 
             if buf != [] as [u8; 0] {
+                println!("{:?}", buf);
+
+                println!("{}", msg);
+
+                println!("{:#?}", decoded_values);
+
                 return Err(io::Error::other(format!(
                             "Encountered error after reading message, most likely the message padding was read wrong, please report this issue"
                         )).into());
@@ -162,27 +168,30 @@ impl DynamicMsg {
             .iter()
             .map(|field| {
                 match field.case() {
-                    FieldCase::Const(_) => Ok(Value::String("const".to_owned())),
+                    FieldCase::Const(val) => Ok(Value::String(val.clone())),
+                    FieldCase::Default(_) => self.decode_field(msg.path(), field, r),
                     FieldCase::Unit => self.decode_field(msg.path(), field, r),
                     //.expect("Error while decoding unit field"),
                     FieldCase::Vector => self.decode_field_array(msg.path(), field, None, r),
                     //.expect("Error while decoding vector field"),
                     FieldCase::Array(l) => self.decode_field_array(msg.path(), field, Some(*l), r), //.expect("Error while decoding array field"),
                 }
+                .map_err(|e| match e {
+                    Error::DecodingError {
+                        msg: _,
+                        field: _,
+                        offset: _,
+                        err,
+                    } => Error::DecodingError {
+                        msg: msg.clone(),
+                        field: field.clone(),
+                        offset: r.bytes_read(),
+                        err,
+                    },
+                    e => e,
+                })
             })
             .try_collect()
-            .map_err(|e| match e {
-                Error::DecodingError {
-                    msg: _,
-                    offset: _,
-                    err,
-                } => Error::DecodingError {
-                    msg: msg.clone(),
-                    offset: r.bytes_read(),
-                    err,
-                },
-                e => e,
-            })
     }
 
     fn decode_field<R: Read>(
@@ -247,6 +256,7 @@ impl DynamicMsg {
                     Err(e) => {
                         return Err(Error::DecodingError {
                             err: std::io::Error::other(e),
+                            field: field.clone(),
                             msg: self.msg.clone(),
                             offset: r.bytes_read(),
                         })

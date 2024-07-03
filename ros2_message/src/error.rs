@@ -1,6 +1,6 @@
 use std::backtrace::{self, Backtrace};
 
-use crate::{MessagePath, Msg};
+use crate::{FieldInfo, MessagePath, Msg};
 
 /// Enumeration of all errors that can be returned.
 #[derive(thiserror::Error, Debug)]
@@ -53,9 +53,10 @@ pub enum Error {
     /// The provided message data is either invalid or unsupported.
     ///
     /// This can happen if an incorrect message definition was used to decode a message.
-    #[error("decoding the message failed at byte {offset} with: `{err}`\n{msg}")]
+    #[error("failed to decode field:\n\n\"{field}\"\n\nGot `{err}` at byte {offset}\n\n{msg}")]
     DecodingError {
         msg: Msg,
+        field: FieldInfo,
         offset: usize,
         err: std::io::Error,
     },
@@ -67,9 +68,11 @@ impl From<std::io::Error> for Error {
         eprintln!("{}", trace);
 
         let default_msg = Msg::new(MessagePath::new("invalid", "Msg").unwrap(), "").unwrap();
+        let default_field = FieldInfo::new("uint8", "invalid", crate::FieldCase::Unit).unwrap();
 
         Error::DecodingError {
             msg: default_msg,
+            field: default_field,
             offset: 0,
             err: value,
         }
