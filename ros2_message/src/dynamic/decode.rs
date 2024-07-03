@@ -164,35 +164,34 @@ impl DynamicMsg {
         msg: &Msg,
         r: &mut ByteCounter<R>,
     ) -> Result<MessageValues> {
-        msg.fields()
-            .iter()
-            .map(|field| {
-                match field.case() {
-                    FieldCase::Const(_) => Ok(field.const_value().unwrap().clone()),
-                    FieldCase::Unit | FieldCase::Default(_) => {
-                        self.decode_field(msg.path(), field, r)
-                    }
-                    //.expect("Error while decoding unit field"),
-                    FieldCase::Vector => self.decode_field_array(msg.path(), field, None, r),
-                    //.expect("Error while decoding vector field"),
-                    FieldCase::Array(l) => self.decode_field_array(msg.path(), field, Some(*l), r), //.expect("Error while decoding array field"),
-                }
-                .map_err(|e| match e {
-                    Error::DecodingError {
-                        msg: _,
-                        field: _,
-                        offset: _,
-                        err,
-                    } => Error::DecodingError {
-                        msg: msg.clone(),
-                        field: field.clone(),
-                        offset: r.bytes_read(),
-                        err,
-                    },
-                    e => e,
-                })
-            })
-            .try_collect()
+        let mut values = Vec::with_capacity(msg.fields().len());
+        for field in msg.fields() {
+            let val = match field.case() {
+                FieldCase::Const(_) => Ok(field.const_value().unwrap().clone()),
+                FieldCase::Unit | FieldCase::Default(_) => self.decode_field(msg.path(), field, r),
+                //.expect("Error while decoding unit field"),
+                FieldCase::Vector => self.decode_field_array(msg.path(), field, None, r),
+                //.expect("Error while decoding vector field"),
+                FieldCase::Array(l) => self.decode_field_array(msg.path(), field, Some(*l), r), //.expect("Error while decoding array field"),
+            }
+            .map_err(|e| match e {
+                Error::DecodingError {
+                    msg: _,
+                    field: _,
+                    offset: _,
+                    err,
+                } => Error::DecodingError {
+                    msg: msg.clone(),
+                    field: field.clone(),
+                    offset: r.bytes_read(),
+                    err,
+                },
+                e => e,
+            })?;
+            values.push(val);
+        }
+
+        Ok(values)
     }
 
     fn decode_field<R: Read>(
@@ -319,9 +318,13 @@ impl DynamicMsg {
             None => r.read_u32::<LE>()? as usize,
         };
         // TODO: optimize by checking data type only once
-        (0..array_length)
-            .map(|_| self.decode_field(parent, field, r))
-            .collect()
+
+        let mut values = Vec::with_capacity(array_length);
+        for _ in 0..array_length {
+            values.push(self.decode_field(parent, field, r)?);
+        }
+
+        Ok(Value::Array(values))
     }
 }
 
