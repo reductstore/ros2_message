@@ -18,7 +18,7 @@ pub struct DynamicMsg {
 }
 
 /// Byte alignment for CDR version 1
-const ALIGNMENT: usize = 8;
+const ALIGNMENT: usize = 4;
 
 impl DynamicMsg {
     pub fn new(message_type: &str, message_definition: &str) -> Result<Self> {
@@ -168,9 +168,10 @@ impl DynamicMsg {
             .iter()
             .map(|field| {
                 match field.case() {
-                    FieldCase::Const(val) => Ok(Value::String(val.clone())),
-                    FieldCase::Default(_) => self.decode_field(msg.path(), field, r),
-                    FieldCase::Unit => self.decode_field(msg.path(), field, r),
+                    FieldCase::Const(_) => Ok(field.const_value().unwrap().clone()),
+                    FieldCase::Unit | FieldCase::Default(_) => {
+                        self.decode_field(msg.path(), field, r)
+                    }
                     //.expect("Error while decoding unit field"),
                     FieldCase::Vector => self.decode_field_array(msg.path(), field, None, r),
                     //.expect("Error while decoding vector field"),
@@ -200,6 +201,12 @@ impl DynamicMsg {
         field: &FieldInfo,
         r: &mut ByteCounter<R>,
     ) -> Result<Value> {
+        /*
+        let field_type = field.datatype().to_string();
+        let prev_read = r.bytes_read();
+        println!(" {} > at {:X}", field_type, prev_read);
+        */
+
         let value = match field.datatype() {
             DataType::Bool => r.read_u8().map(|i| i != 0)?.into(),
             DataType::I8(_) => r.read_i8()?.into(),
@@ -287,6 +294,16 @@ impl DynamicMsg {
             }
         };
 
+        /*
+        println!(
+            " {} < at {:X} ( +{}) => {}",
+            " ".repeat(field_type.len()),
+            r.bytes_read(),
+            r.bytes_read() - prev_read,
+            &value
+        );
+         */
+
         Ok(value)
     }
 
@@ -302,7 +319,6 @@ impl DynamicMsg {
             None => r.read_u32::<LE>()? as usize,
         };
         // TODO: optimize by checking data type only once
-        println!("{}", array_length);
         (0..array_length)
             .map(|_| self.decode_field(parent, field, r))
             .collect()
