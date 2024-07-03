@@ -1,8 +1,8 @@
 use serde_derive::{Deserialize, Serialize};
 use std::cmp;
 use std::convert::TryInto;
-use std::fmt::Formatter;
 use std::fmt;
+use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
 use std::ops;
 use std::time;
@@ -30,7 +30,7 @@ impl Time {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Time;
+    /// # use ros2_message::Time;
     /// assert_eq!(Time::new(), Time { sec: 0, nsec: 0 });
     /// ```
     #[inline]
@@ -43,7 +43,7 @@ impl Time {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Time;
+    /// # use ros2_message::Time;
     /// assert_eq!(Time::from_nanos(0), Time { sec: 0, nsec: 0 });
     /// assert_eq!(Time::from_nanos(12_000_000_123), Time { sec: 12, nsec: 123 });
     /// ```
@@ -60,7 +60,7 @@ impl Time {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Time;
+    /// # use ros2_message::Time;
     /// assert_eq!(Time::from_seconds(0), Time { sec: 0, nsec: 0 });
     /// assert_eq!(Time::from_seconds(12), Time { sec: 12, nsec: 0 });
     /// ```
@@ -74,7 +74,7 @@ impl Time {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Time;
+    /// # use ros2_message::Time;
     /// assert_eq!(Time { sec: 0, nsec: 0 }.nanos(), 0);
     /// assert_eq!(Time { sec: 12, nsec: 123 }.nanos(), 12_000_000_123);
     /// ```
@@ -88,7 +88,7 @@ impl Time {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Time;
+    /// # use ros2_message::Time;
     /// assert_eq!(Time { sec: 0, nsec: 0 }.seconds(), 0.0);
     /// assert_eq!(Time { sec: 12, nsec: 123 }.seconds(), 12.000_000_123);
     /// ```
@@ -134,9 +134,11 @@ impl cmp::Ord for Time {
 impl From<time::SystemTime> for Time {
     fn from(other: time::SystemTime) -> Self {
         let epoch = time::SystemTime::UNIX_EPOCH;
-        let elapsed = other.duration_since(epoch)
+        let elapsed = other
+            .duration_since(epoch)
             .expect("Dates before 1970 are not supported by the ROS time format");
-        let sec = elapsed.as_secs()
+        let sec = elapsed
+            .as_secs()
             .try_into()
             .expect("Dates after 2100 are not supported by the ROS time format");
         Self {
@@ -188,7 +190,7 @@ impl Duration {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Duration;
+    /// # use ros2_message::Duration;
     /// assert_eq!(Duration::new(), Duration { sec: 0, nsec: 0 });
     /// ```
     #[inline]
@@ -201,7 +203,7 @@ impl Duration {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Duration;
+    /// # use ros2_message::Duration;
     /// assert_eq!(Duration::from_nanos(0), Duration { sec: 0, nsec: 0 });
     /// assert_eq!(Duration::from_nanos(12_000_000_123), Duration { sec: 12, nsec: 123 });
     /// assert_eq!(Duration::from_nanos(-12_000_000_123), Duration { sec: -12, nsec: -123 });
@@ -219,7 +221,7 @@ impl Duration {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Duration;
+    /// # use ros2_message::Duration;
     /// assert_eq!(Duration::from_seconds(0), Duration { sec: 0, nsec: 0 });
     /// assert_eq!(Duration::from_seconds(12), Duration { sec: 12, nsec: 0 });
     /// assert_eq!(Duration::from_seconds(-12), Duration { sec: -12, nsec: 0 });
@@ -234,7 +236,7 @@ impl Duration {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Duration;
+    /// # use ros2_message::Duration;
     /// assert_eq!(Duration { sec: 0, nsec: 0 }.nanos(), 0);
     /// assert_eq!(Duration { sec: 12, nsec: 123 }.nanos(), 12_000_000_123);
     /// assert_eq!(Duration { sec: -12, nsec: -123 }.nanos(), -12_000_000_123);
@@ -249,7 +251,7 @@ impl Duration {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Duration;
+    /// # use ros2_message::Duration;
     /// assert_eq!(Duration { sec: 0, nsec: 0 }.seconds(), 0.0);
     /// assert_eq!(Duration { sec: 12, nsec: 123 }.seconds(), 12.000_000_123);
     /// assert_eq!(Duration { sec: -12, nsec: -123 }.seconds(), -12.000_000_123);
@@ -325,7 +327,8 @@ impl ops::Neg for Duration {
 
 impl From<time::Duration> for Duration {
     fn from(std_duration: time::Duration) -> Self {
-        let sec = std_duration.as_secs()
+        let sec = std_duration
+            .as_secs()
             .try_into()
             .expect("Durations longer than 68 years are not supported by the ROS time format");
         Duration {
@@ -344,9 +347,6 @@ impl From<Duration> for time::Duration {
             nsec += 1_000_000_000;
         }
 
-        Self::new(
-            (other.sec + extra_sec).try_into().unwrap(),
-            nsec as u32,
-        )
+        Self::new((other.sec + extra_sec).try_into().unwrap(), nsec as u32)
     }
 }

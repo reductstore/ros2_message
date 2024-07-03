@@ -138,7 +138,7 @@ impl DataType {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{DataType, I8Variant};
+    /// # use ros2_message::{DataType, I8Variant};
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -202,7 +202,7 @@ impl DataType {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{DataType, I8Variant};
+    /// # use ros2_message::{DataType, I8Variant};
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// assert!(DataType::parse("int16")?.is_builtin());
@@ -251,7 +251,7 @@ impl DataType {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{DataType, I8Variant};
+    /// # use ros2_message::{DataType, I8Variant};
     /// # use std::convert::TryInto;
     /// # use std::collections::HashMap;
     /// #

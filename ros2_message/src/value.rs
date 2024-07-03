@@ -90,7 +90,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::Bool(true).as_bool(), Some(true));
     /// assert_eq!(Value::Bool(false).as_bool(), Some(false));
     /// assert!(Value::U32(12).as_bool().is_none());
@@ -108,7 +108,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::I8(12).as_i8(), Some(12));
     /// assert!(Value::U32(12).as_i8().is_none());
     /// ```
@@ -125,7 +125,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::I16(12).as_i16(), Some(12));
     /// assert!(Value::U32(12).as_i16().is_none());
     /// ```
@@ -142,7 +142,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::I32(12).as_i32(), Some(12));
     /// assert!(Value::U32(12).as_i32().is_none());
     /// ```
@@ -159,7 +159,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::I64(12).as_i64(), Some(12));
     /// assert!(Value::U32(12).as_i64().is_none());
     /// ```
@@ -176,7 +176,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::U8(12).as_u8(), Some(12));
     /// assert!(Value::U32(12).as_u8().is_none());
     /// ```
@@ -193,7 +193,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::U16(12).as_u16(), Some(12));
     /// assert!(Value::U32(12).as_u16().is_none());
     /// ```
@@ -210,7 +210,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::U32(12).as_u32(), Some(12));
     /// assert!(Value::U16(12).as_u32().is_none());
     /// ```
@@ -227,7 +227,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::U64(12).as_u64(), Some(12));
     /// assert!(Value::U32(12).as_u64().is_none());
     /// ```
@@ -244,7 +244,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::F32(12.0).as_f32(), Some(12.0));
     /// assert!(Value::U32(12).as_f32().is_none());
     /// ```
@@ -261,7 +261,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::F64(12.0).as_f64(), Some(12.0));
     /// assert!(Value::U32(12).as_f64().is_none());
     /// ```
@@ -278,7 +278,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::String("foo".into()).as_str(), Some("foo"));
     /// assert!(Value::U32(12).as_str().is_none());
     /// ```
@@ -295,7 +295,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(Value::String("foo".into()).try_into_string(), Some("foo".into()));
     /// assert!(Value::U32(12).try_into_string().is_none());
     /// ```
@@ -312,7 +312,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{Time, Value};
+    /// # use ros2_message::{Time, Value};
     /// assert_eq!(
     ///     Value::Time(Time::from_nanos(120)).as_time(),
     ///     Some(Time::from_nanos(120)),
@@ -332,7 +332,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{Duration, Value};
+    /// # use ros2_message::{Duration, Value};
     /// assert_eq!(
     ///     Value::Duration(Duration::from_nanos(120)).as_duration(),
     ///     Some(Duration::from_nanos(120)),
@@ -352,7 +352,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(
     ///     Value::Array(vec![1u32.into(), 2u32.into(), 3u32.into()]).as_slice(),
     ///     Some(&[Value::U32(1), Value::U32(2), Value::U32(3)][..]),
@@ -372,7 +372,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// assert_eq!(
     ///     Value::Array(vec![1u32.into(), 2u32.into(), 3u32.into()]).try_into_vec(),
     ///     Some(vec![Value::U32(1), Value::U32(2), Value::U32(3)]),
@@ -392,7 +392,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// # use std::collections::HashMap;
     /// let mut data = HashMap::<String, Value>::new();
     /// data.insert("foo".into(), true.into());
@@ -413,7 +413,7 @@ impl Value {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Value;
+    /// # use ros2_message::Value;
     /// # use std::collections::HashMap;
     /// let mut data = HashMap::<String, Value>::new();
     /// data.insert("foo".into(), true.into());

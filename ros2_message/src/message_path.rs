@@ -37,7 +37,7 @@ impl MessagePath {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::MessagePath;
+    /// # use ros2_message::MessagePath;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let message_path = MessagePath::new("foo", "Bar")?;
@@ -68,7 +68,7 @@ impl MessagePath {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::MessagePath;
+    /// # use ros2_message::MessagePath;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let message_path = MessagePath::new("foo", "Bar")?.peer("Baz");

@@ -33,7 +33,7 @@ impl Srv {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Srv;
+    /// # use ros2_message::Srv;
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {

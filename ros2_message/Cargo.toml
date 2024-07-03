@@ -1,10 +1,15 @@
 [package]
 edition = "2018"
-authors = ["Adnan Ademovic <adnanademovic100@gmail.com>"]
-description = "Utilities for handling MSG and SRV files in ROS"
+authors = [
+    "AKORA <65976562+A-K-O-R-A@users.noreply.github.com>",
+    "Adnan Ademovic <adnanademovic100@gmail.com>",
+]
+description = "Utilities for handling MSG and SRV files in ROS2"
+categories = ["encoding", "parser-implementations"]
+keywords = ["ros", "ros2", "dynamic"]
 license = "MIT"
-name = "ros_message"
-repository = "https://github.com/adnanademovic/rosrust"
+name = "ros2_message"
+repository = "https://github.com/A-K-O-R-A/ros2_message"
 version = "0.1.1"
 
 [dependencies]

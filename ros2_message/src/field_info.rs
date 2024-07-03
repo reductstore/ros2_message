@@ -80,7 +80,7 @@ impl FieldInfo {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{DataType, FieldInfo, FieldCase};
+    /// # use ros2_message::{DataType, FieldInfo, FieldCase};
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let field = FieldInfo::new("int16", "foo", FieldCase::Vector)?;
@@ -94,7 +94,7 @@ impl FieldInfo {
     /// ```
     ///
     /// ```
-    /// # use ros_message::{FieldInfo, FieldCase};
+    /// # use ros2_message::{FieldInfo, FieldCase};
     /// assert!(FieldInfo::new("bad/field/type", "foo", FieldCase::Vector).is_err());
     /// ```
     pub fn new(datatype: &str, name: impl Into<String>, case: FieldCase) -> Result<FieldInfo> {
@@ -163,7 +163,7 @@ impl FieldInfo {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{DataType, FieldInfo, FieldCase};
+    /// # use ros2_message::{DataType, FieldInfo, FieldCase};
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// assert!(!FieldInfo::new("int16", "foo", FieldCase::Vector)?.is_constant());
@@ -192,7 +192,7 @@ impl FieldInfo {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{FieldInfo, FieldCase};
+    /// # use ros2_message::{FieldInfo, FieldCase};
     /// # use std::convert::TryInto;
     /// # use std::collections::HashMap;
     /// #
@@ -267,7 +267,7 @@ impl FieldInfo {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{FieldInfo, FieldCase};
+    /// # use ros2_message::{FieldInfo, FieldCase};
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// assert!(FieldInfo::new("Header", "header", FieldCase::Unit)?.is_header());

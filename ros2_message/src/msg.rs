@@ -31,7 +31,7 @@ impl Msg {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Msg;
+    /// # use ros2_message::Msg;
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -67,7 +67,7 @@ impl Msg {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::{Msg, Value};
+    /// # use ros2_message::{Msg, Value};
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -129,7 +129,7 @@ impl Msg {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Msg;
+    /// # use ros2_message::Msg;
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -196,7 +196,7 @@ impl Msg {
     /// # Examples
     ///
     /// ```
-    /// # use ros_message::Msg;
+    /// # use ros2_message::Msg;
     /// # use std::convert::TryInto;
     /// # use std::collections::HashMap;
     /// #

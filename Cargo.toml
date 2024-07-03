@@ -1,19 +1,6 @@
 [workspace]
-members = [
-    "rosrust",
-    "rosrust_codegen",
-    "rosrust_msg",
-    "rosrust_actionlib",
-    "rosrust_diagnostics",
-    "ros_message",
-    "examples",
-]
+members = ["ros2_message"] #, "examples"]
 
 [patch.crates-io]
-"rosrust" = { path = "rosrust" }
-"rosrust_codegen" = { path = "rosrust_codegen" }
-"rosrust_msg" = { path = "rosrust_msg" }
-"rosrust_actionlib" = { path = "rosrust_actionlib" }
-"rosrust_diagnostics" = { path = "rosrust_diagnostics" }
-"ros_message" = { path = "ros_message" }
-"examples" = { path = "examples" }
+"ros2_message" = { path = "ros2_message" }
+# "examples" = { path = "examples" }
