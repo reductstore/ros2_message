@@ -1,5 +1,5 @@
 [package]
-edition = "2018"
+edition = "2021"
 authors = [
     "AKORA <65976562+A-K-O-R-A@users.noreply.github.com>",
     "Adnan Ademovic <adnanademovic100@gmail.com>",
@@ -12,8 +12,14 @@ name = "ros2_message"
 repository = "https://github.com/A-K-O-R-A/ros2_message"
 version = "0.1.1"
 
+[features]
+default = ["decode"]
+decode = ["dep:byteorder", "dep:rustc-hash"]
+
 [dependencies]
 array-init = "2.0.0"
+byteorder = { version = "1.5.0", optional = true }
+rustc-hash = { version = "1.1.0", optional = true }
 hex = "0.4.3"
 itertools = "0.10.1"
 lazy_static = "1.4.0"
@@ -21,7 +27,8 @@ md-5 = "0.9.1"
 regex = "1.5.4"
 serde = "1.0.127"
 serde_derive = "1.0.127"
-thiserror = "1.0.26"
+thiserror = "1.0.61"
+
 
 [dev-dependencies]
 serde_json = "1.0.66"

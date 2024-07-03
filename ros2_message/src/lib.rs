@@ -2,6 +2,7 @@
 #![warn(missing_docs)]
 
 mod data_type;
+pub mod dynamic;
 mod error;
 mod field_info;
 mod message_path;

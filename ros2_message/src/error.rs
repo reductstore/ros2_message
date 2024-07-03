@@ -1,3 +1,7 @@
+use std::backtrace::{self, Backtrace};
+
+use crate::Msg;
+
 /// Enumeration of all errors that can be returned.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -45,6 +49,29 @@ pub enum Error {
         /// The invalid value provided.
         value: String,
     },
+
+    /// The provided message data is either invalid or unsupported.
+    ///
+    /// This can happen if an incorrect message definition was used to decode a message.
+    #[error("decoding the message failed at {offset:?} with: `{err}`\n{msg:?}")]
+    DecodingError {
+        msg: Option<Msg>,
+        offset: Option<usize>,
+        err: std::io::Error,
+    },
+}
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        let trace = Backtrace::force_capture();
+        eprintln!("{}", trace);
+
+        Error::DecodingError {
+            msg: None,
+            offset: None,
+            err: value,
+        }
+    }
 }
 
 /// Convenience type for shorter return value syntax of this crate's errors.
