@@ -171,6 +171,18 @@ impl DynamicMsg {
                 }
             })
             .try_collect()
+            .map_err(|e| match e {
+                Error::DecodingError {
+                    msg: _,
+                    offset: _,
+                    err,
+                } => Error::DecodingError {
+                    msg: msg.clone(),
+                    offset: r.bytes_read(),
+                    err,
+                },
+                e => e,
+            })
     }
 
     fn decode_field<R: Read>(
@@ -225,44 +237,21 @@ impl DynamicMsg {
 
                 let mut v = vec![0; (len - 1) as usize];
                 r.read_exact(&mut v)?;
+
                 // Read \0 character
-                r.read_u8()?;
+                let null = r.read_u8()?;
+                assert_eq!(0, null);
 
                 match String::from_utf8(v) {
-                    Ok(s) => {
-                        println!("{} {}", len, &s);
-
-                        Value::String(s)
-                    }
+                    Ok(s) => Value::String(s),
                     Err(e) => {
                         return Err(Error::DecodingError {
                             err: std::io::Error::other(e),
-                            msg: Some(self.msg.clone()),
-                            offset: Some(r.bytes_read()),
+                            msg: self.msg.clone(),
+                            offset: r.bytes_read(),
                         })
                     }
                 }
-
-                /*
-                // return Ok(String::new().into());
-
-                let len = r.read_u32::<LE>()? - 1;
-                let mut buf = Vec::with_capacity(len as usize);
-                buf.resize(len as usize, 0);
-
-                let Ok(_) = r.read_exact(&mut buf) else {
-                    println!("What {len}");
-
-                    return Ok(String::new().into());
-                };
-                // buf.pop(); //Remove NULL
-
-                String::from_utf8(buf)
-                    .map_err(|e| {
-                        io::Error::new(io::ErrorKind::Other, format!("Invalid string {}", e))
-                    })?
-                    .into()
-                    */
             }
             DataType::Time => {
                 r.align_to(4)?;
@@ -303,6 +292,7 @@ impl DynamicMsg {
             None => r.read_u32::<LE>()? as usize,
         };
         // TODO: optimize by checking data type only once
+        println!("{}", array_length);
         (0..array_length)
             .map(|_| self.decode_field(parent, field, r))
             .collect()

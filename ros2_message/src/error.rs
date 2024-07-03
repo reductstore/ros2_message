@@ -1,6 +1,6 @@
 use std::backtrace::{self, Backtrace};
 
-use crate::Msg;
+use crate::{MessagePath, Msg};
 
 /// Enumeration of all errors that can be returned.
 #[derive(thiserror::Error, Debug)]
@@ -53,10 +53,10 @@ pub enum Error {
     /// The provided message data is either invalid or unsupported.
     ///
     /// This can happen if an incorrect message definition was used to decode a message.
-    #[error("decoding the message failed at {offset:?} with: `{err}`\n{msg:?}")]
+    #[error("decoding the message failed at byte {offset} with: `{err}`\n{msg}")]
     DecodingError {
-        msg: Option<Msg>,
-        offset: Option<usize>,
+        msg: Msg,
+        offset: usize,
         err: std::io::Error,
     },
 }
@@ -66,9 +66,11 @@ impl From<std::io::Error> for Error {
         let trace = Backtrace::force_capture();
         eprintln!("{}", trace);
 
+        let default_msg = Msg::new(MessagePath::new("invalid", "Msg").unwrap(), "").unwrap();
+
         Error::DecodingError {
-            msg: None,
-            offset: None,
+            msg: default_msg,
+            offset: 0,
             err: value,
         }
     }
