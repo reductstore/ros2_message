@@ -14,9 +14,9 @@ For more information take a look at the [`Msg`](https://docs.rs/ros2_message/lat
 
 ## Implementation status
  - [ ] Implementing the full CDR spec
-  - [x] Little endian plain CDR is supported
-  - [ ] Big endian plain CDR
-  - [ ] PL CDR & CDR2
+   - [x] Little endian plain CDR is supported
+   - [ ] Big endian plain CDR
+   - [ ] PL CDR & CDR2
  - [ ] Extensive testing for different encoded messages
 
 
