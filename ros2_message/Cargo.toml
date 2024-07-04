@@ -11,7 +11,7 @@ license = "MIT"
 name = "ros2_message"
 readme = "../README.md"
 repository = "https://github.com/A-K-O-R-A/ros2_message"
-version = "0.1.1"
+version = "0.0.1"
 
 [features]
 default = ["decode"]
