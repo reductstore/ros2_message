@@ -1,5 +1,6 @@
 [workspace]
 members = ["ros2_message"] #, "examples"]
+resolver = "2"
 
 [patch.crates-io]
 "ros2_message" = { path = "ros2_message" }

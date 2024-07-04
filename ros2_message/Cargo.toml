@@ -12,6 +12,7 @@ name = "ros2_message"
 readme = "../README.md"
 repository = "https://github.com/A-K-O-R-A/ros2_message"
 version = "0.0.1"
+exclude = ["src/tests/*", "src/parse_msg/tests.rs"]
 
 [features]
 default = ["decode"]
