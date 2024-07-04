@@ -3,15 +3,19 @@
 [![MIT Licensed](https://img.shields.io/crates/l/ros2_message.svg?maxAge=3600)](./LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/ros2_message.svg?maxAge=3600)](https://crates.io/crates/ros2_message)
 
+> [!WARNING]
+> This crate is not extensively tested yet and there is a good chance that you will discover issues.
+> If you do please [create a GitHub Issue](https://github.com/A-K-O-R-A/ros2_message/issues/new)
+
 **ros2_message** is a utility library for handling anything related to [ROS2](https://ros.org/) `.msg` and `.srv` files in Rust. It's primary focus is parsing and dynamically decoding ROS messages.
 
 
 ## Resources
  - ROS2 documentation https://docs.ros.org/
- - asd
+ - Interface documentation https://docs.ros.org/en/iron/Concepts/Basic/About-Interfaces.html#messages
 
 ### Foxglove `.msg` file parsing implemenation
- - https://github.com/foxglove/message-definition/
+ - [foxglove/message-definition](https://github.com/foxglove/message-definition/)
 
 ### Foxglove dynamic decoding implementation
   - ROS2 specific deserialization:
