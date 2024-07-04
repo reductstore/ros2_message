@@ -1,2 +1,3 @@
 #[cfg(feature = "decode")]
-pub mod decode;
+mod decode;
+pub use decode::DynamicMsg;

@@ -1,8 +1,14 @@
 //! Crate for describing ROS messages, and handling MSG and SRV files.
+//! <div class="warning">
+//!
+//! This crate is not extensively tested yet and there is a good chance that you will discover issues.
+//! If you do please [create a GitHub Issue](https://github.com/A-K-O-R-A/ros2_message/issues/new)
+//!
+//! </div>
 #![warn(missing_docs)]
 
 mod data_type;
-pub mod dynamic;
+
 mod error;
 mod field_info;
 mod message_path;
@@ -13,6 +19,10 @@ mod srv;
 mod tests;
 mod time;
 mod value;
+
+/// This
+#[cfg(feature = "decode")]
+pub mod dynamic;
 
 pub use data_type::{DataType, I8Variant, U8Variant};
 pub use error::{Error, Result};

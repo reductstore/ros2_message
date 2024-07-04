@@ -1,7 +1,6 @@
 use crate::error::{Error, Result};
 use crate::{DataType, FieldCase, FieldInfo, MessagePath, Msg, Value};
 use byteorder::{ReadBytesExt, LE};
-use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::RegexBuilder;
 use rustc_hash::FxHashMap;
@@ -45,10 +44,12 @@ impl DynamicMsg {
         Ok(DynamicMsg { msg, dependencies })
     }
 
+    /// Returns the underlying ROS2 message definition
     pub fn msg(&self) -> &Msg {
         &self.msg
     }
 
+    /// Returns the associated dependency of the underlying parsed ROS2 message definition if present
     pub fn dependency(&self, path: &MessagePath) -> Option<&Msg> {
         self.dependencies.get(path)
     }
@@ -125,11 +126,16 @@ impl DynamicMsg {
         // https://github.com/foxglove/cdr/blob/main/src/EncapsulationKind.ts
         // let kind = buf[1];
         if buf != [0, 0x01, 0, 0] {
-            return Err(io::Error::other(format!(
-                "Invalid CRD kind {:b}, only little endian is supported",
-                buf[1]
-            ))
-            .into());
+            return Err(Error::DecodingError {
+                msg: msg.clone(),
+                field: FieldInfo::new("uint8", "error_placeholder_field", crate::FieldCase::Unit)
+                    .unwrap(),
+                offset: r.bytes_read(),
+                err: io::Error::other(format!(
+                    "Invalid CRD kind {:b}, only little endian is supported",
+                    buf[1]
+                )),
+            });
         }
 
         let decoded_values = self.decode_message_inner(msg, &mut r)?;
@@ -144,14 +150,11 @@ impl DynamicMsg {
             r.read_to_end(&mut buf)?;
 
             if buf != [] as [u8; 0] {
-                println!("{:?}", buf);
-
-                println!("{}", msg);
-
-                println!("{:#?}", decoded_values);
-
                 return Err(io::Error::other(format!(
-                            "Encountered error after reading message, most likely the message padding was read wrong, please report this issue"
+                            "Encountered error after reading message, most likely the message padding was read wrong,\
+                             please report this issue. The message was decoded to the following fields:\n\n{decoded_values:#?}\n\n\
+                             For further diagnosis please provide the following message definition:\n\n\
+                             {msg}\n\nAlso provide the raw byte data: {buf:?}"
                         )).into());
             }
         }

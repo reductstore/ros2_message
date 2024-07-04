@@ -1,4 +1,4 @@
-use std::backtrace::{self, Backtrace};
+use std::backtrace::Backtrace;
 
 use crate::{FieldInfo, MessagePath, Msg};
 
@@ -55,9 +55,13 @@ pub enum Error {
     /// This can happen if an incorrect message definition was used to decode a message.
     #[error("failed to decode field:\n\n\"{field}\"\n\nGot `{err}` at byte {offset}\n\n{msg}")]
     DecodingError {
+        /// The associated message definition that was used to decode the data
         msg: Msg,
+        /// The field that the decoder failed at
         field: FieldInfo,
+        /// The byte offset the deocder failed at
         offset: usize,
+        /// The underlying io error
         err: std::io::Error,
     },
 }
@@ -65,10 +69,16 @@ pub enum Error {
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
         let trace = Backtrace::force_capture();
+        // TODO!: this probably isn't wanted behaviour but left in for debugging purposes for now
         eprintln!("{}", trace);
 
-        let default_msg = Msg::new(MessagePath::new("invalid", "Msg").unwrap(), "").unwrap();
-        let default_field = FieldInfo::new("uint8", "invalid", crate::FieldCase::Unit).unwrap();
+        let default_msg = Msg::new(
+            MessagePath::new("placeholder", "PlaceholderMessage").unwrap(),
+            "",
+        )
+        .unwrap();
+        let default_field =
+            FieldInfo::new("uint8", "error_placeholder_field", crate::FieldCase::Unit).unwrap();
 
         Error::DecodingError {
             msg: default_msg,
