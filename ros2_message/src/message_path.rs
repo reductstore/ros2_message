@@ -88,6 +88,20 @@ impl MessagePath {
     fn from_combined(input: &str) -> Result<Self> {
         let parts = input.splitn(3, '/').collect::<Vec<&str>>();
         match parts[..] {
+            [package, msg, name] => match msg {
+                "srv" => Err(Error::InvalidMessagePath {
+                    name: input.to_owned(),
+                    reason:
+                        "service names are not valid message paths, please use ServicePath(not yet implemented) instead"
+                            .into(),
+                }),
+                "msg" => Self::new(package, name),
+                _ => Err(Error::InvalidMessagePath {
+                    name: input.to_owned(),
+                    reason: "message path should follow the pattern packageName/msg/messageName"
+                        .into(),
+                }),
+            },
             [package, name] => Self::new(package, name),
             _ => Err(Error::InvalidMessagePath {
                 name: input.into(),
