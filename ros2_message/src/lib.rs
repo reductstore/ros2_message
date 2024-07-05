@@ -20,7 +20,8 @@ mod tests;
 mod time;
 mod value;
 
-/// This
+/// Provides functionality by decoding a ROS2 messages when the message definition is
+/// only known at runtime, see [dynamic::DynamicMsg] for more.
 #[cfg(feature = "decode")]
 pub mod dynamic;
 

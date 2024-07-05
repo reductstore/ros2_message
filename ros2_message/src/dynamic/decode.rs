@@ -10,6 +10,11 @@ use std::io::{self, Read};
 type MyMap<K, V> = FxHashMap<K, V>;
 type MessageValues = Vec<Value>;
 
+// Most of this code is copied from
+// https://github.com/adnanademovic/rosrust/blob/master/rosrust/src/dynamic_msg.rs
+
+/// A dynamic Message provides a decoder for ROS2 messages at runtime without
+/// the need to compile a message decoder during compilation. See [Self::new()] for more.
 #[derive(Clone, Debug)]
 pub struct DynamicMsg {
     msg: Msg,
@@ -20,7 +25,28 @@ pub struct DynamicMsg {
 const ALIGNMENT: usize = 4;
 
 impl DynamicMsg {
-    pub fn new(message_type: &str, message_definition: &str) -> Result<Self> {
+    /// Create a new DynamicMsg by parsing it's message definition. For this to work all of
+    /// the messages depencies have to be provided as well, see the example for more.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ros2_message::dynamic::DynamicMsg;
+    ///
+    /// let msg_definition = r#"
+    /// builtin_interfaces/Time stamp
+    /// float32 value
+    ///
+    /// ================================================================================
+    /// MSG: builtin_interfaces/Time
+    ///
+    /// int32 sec
+    /// uint32 nanosec
+    /// "#;
+    /// let dynamic_message = DynamicMsg::new("package/msg/SmallMsg", msg_definition);
+    /// assert!(dynamic_message.is_ok());
+    /// ```
+    pub fn new(message_name: &str, message_definition: &str) -> Result<Self> {
         lazy_static! {
             static ref RE_DESCRIPTOR_MESSAGES_SPLITTER: regex::Regex = RegexBuilder::new("^=+$")
                 .multi_line(true)
@@ -32,9 +58,9 @@ impl DynamicMsg {
             .next()
             .ok_or(Error::BadMessageContent(format!(
                 "Message definition for {} is missing main message body",
-                message_type
+                message_name
             )))?;
-        let msg = Self::parse_msg(message_type, message_src)?;
+        let msg = Self::parse_msg(message_name, message_src)?;
         let mut dependencies = MyMap::default();
         for message_body in message_bodies {
             let dependency = Self::parse_dependency(message_body)?;
@@ -54,8 +80,8 @@ impl DynamicMsg {
         self.dependencies.get(path)
     }
 
-    fn parse_msg(message_type: &str, message_src: &str) -> Result<Msg> {
-        let message_path = message_type.try_into()?;
+    fn parse_msg(message_path: &str, message_src: &str) -> Result<Msg> {
+        let message_path = message_path.try_into()?;
         let msg = Msg::new(message_path, message_src)?;
         Ok(msg)
     }
@@ -96,8 +122,38 @@ impl DynamicMsg {
     }
 
     /// This will read the provided reader to its end and return a map with all field names mapped to their values.
-    /// If you encounter perfomance problems you may want to take a look at the  [`Self::decode_raw()`] method instead
-    pub fn decode(&self, r: &mut impl io::Read) -> Result<MyMap<String, Value>> {
+    /// If you encounter perfomance problems you may want to take a look at the  [Self::decode_raw()] method instead
+    ///
+    /// # Errors
+    ///
+    /// This will error if the provided reader is either to long or too short, make sure you only porvide a reader for
+    /// the byte slice containing exactly one message.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ros2_message::dynamic::DynamicMsg;
+    ///
+    /// let msg_definition = r#"
+    /// builtin_interfaces/Time stamp
+    /// float32 value
+    ///
+    /// ================================================================================
+    /// MSG: builtin_interfaces/Time
+    ///
+    /// int32 sec
+    /// uint32 nanosec
+    /// "#;
+    ///
+    /// let dynamic_message = DynamicMsg::new("package/msg/SmallMsg", msg_definition)
+    ///     .expect("The message definition was invalid");
+    /// let message = dynamic_message.decode(&[0x00u8, 0x01, 0, 0, 157, 47, 136, 102, 42, 0, 0 ,0, 219, 15, 73, 64][..])
+    ///     .expect("The supplied bytes do not match the message definition");
+    ///
+    /// // Reading the value field of the message
+    /// assert_eq!(message["value"], ros2_message::Value::F32(core::f32::consts::PI));
+    /// ```
+    pub fn decode<R: Read>(&self, r: R) -> Result<MyMap<String, Value>> {
         let values = self.decode_message(self.msg(), r)?;
         let mut map = MyMap::default();
         for (i, v) in values.into_iter().enumerate() {
@@ -111,7 +167,31 @@ impl DynamicMsg {
     /// The values are in the same order as the message fields, this is done to save cost from expensive
     /// Map read&writes.
     ///
-    /// If you want a HashMap of values instead use the [`Self::decode()`] method instead
+    /// If you want a HashMap of values instead use the [Self::decode()] method instead
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ros2_message::dynamic::DynamicMsg;
+    ///
+    /// let msg_definition = r#"
+    /// builtin_interfaces/Time stamp
+    /// float32 value
+    ///
+    /// ================================================================================
+    /// MSG: builtin_interfaces/Time
+    ///
+    /// int32 sec
+    /// uint32 nanosec
+    /// "#;
+    ///
+    /// let dynamic_message = DynamicMsg::new("package/msg/SmallMsg", msg_definition).expect("The message definition was invalid");
+    /// let message = dynamic_message.decode_raw(&[0x00u8, 0x01, 0, 0, 157, 47, 136, 102, 42, 0, 0 ,0, 219, 15, 73, 64][..])
+    ///     .expect("The supplied bytes do not match the message definition");
+    ///
+    /// // Reading the second field of the message
+    /// assert_eq!(message[1], ros2_message::Value::F32(core::f32::consts::PI));
+    /// ```
     pub fn decode_raw<R: Read>(&self, r: R) -> Result<MessageValues> {
         self.decode_message(self.msg(), r)
     }
