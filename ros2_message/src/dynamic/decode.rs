@@ -3,11 +3,12 @@ use crate::{DataType, FieldCase, FieldInfo, MessagePath, Msg, Value};
 use byteorder::{ReadBytesExt, LE};
 use lazy_static::lazy_static;
 use regex::RegexBuilder;
-use rustc_hash::FxHashMap;
+// use rustc_hash::FxHashMap;
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::io::{self, Read};
 
-type MyMap<K, V> = FxHashMap<K, V>;
+type MyMap<K, V> = HashMap<K, V>;
 type MessageValues = Vec<Value>;
 
 // Most of this code is copied from
@@ -154,10 +155,55 @@ impl DynamicMsg {
     /// assert_eq!(message["value"], ros2_message::Value::F32(core::f32::consts::PI));
     /// ```
     pub fn decode<R: Read>(&self, r: R) -> Result<MyMap<String, Value>> {
-        let values = self.decode_message(self.msg(), r)?;
+        let mut values = self.decode_message(self.msg(), r)?;
+
+        Ok(self.map_field_names(self.msg(), &mut values)?)
+    }
+
+    // Map decoded field arrays to their field names for easy usage
+    // TODO!: Use better collection method for this operation
+    fn map_field_names(&self, msg: &Msg, values: &mut Vec<Value>) -> Result<MyMap<String, Value>> {
         let mut map = MyMap::default();
-        for (i, v) in values.into_iter().enumerate() {
-            map.insert(self.msg().fields()[i].name().to_owned(), v);
+        for field_info in msg.fields().iter() {
+            let field_name = field_info.name().to_owned();
+
+            println!("{} - {:?}", &field_name, values);
+
+            let field_value = match field_info.datatype() {
+                DataType::GlobalMessage(path) => {
+                    let msg = self.get_dependency(path)?;
+                    let mut nested_values = match values.remove(0) {
+                        Value::Array(arr) => arr,
+                        _ => {
+                            return Err(Error::DecodingError {
+                                err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
+                                field: field_info.clone(),
+                                msg: msg.clone(),
+                                offset: 0,
+                            })
+                        }
+                    };
+
+                    Value::Message(self.map_field_names(msg, &mut nested_values)?)
+                }
+                DataType::LocalMessage(name) => {
+                    let msg = self.get_dependency(&msg.path().peer(name))?;
+                    let mut nested_values = match values.remove(0) {
+                        Value::Array(arr) => arr,
+                        _ => return Err(Error::DecodingError {
+                                err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
+                                field: field_info.clone(),
+                                msg: msg.clone(),
+                                offset: 0,
+                            }),
+                    };
+
+                    Value::Message(self.map_field_names(msg, &mut nested_values)?)
+                }
+                _ => values.remove(0),
+            };
+
+            map.insert(field_name, field_value);
         }
 
         Ok(map)
