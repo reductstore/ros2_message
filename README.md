@@ -12,6 +12,11 @@ It's primary focus is dynamically parsing and decoding ROS2 messages. The most c
 For more information take a look at the [`Msg`](https://docs.rs/ros2_message/latest/ros2_message/struct.Msg.html) and
 [`DynamicMsg`](https://docs.rs/ros2_message/latest/ros2_message/dynamic/decode/struct.DynamicMsg.html) structs.
 
+The most common use case for this is reading out MCAP files, especially in a environment where installing ROS2 is not an option.
+For more information about that have a look at the the [mcap_reading](https://github.com/A-K-O-R-A/ros2_message/blob/master/examples/examples/mcap_reading.rs) example
+in the [examples](https://github.com/A-K-O-R-A/ros2_message/blob/master/examples/examples/) folder.
+
+
 ## Implementation status
  - [ ] Implementing the full CDR spec
    - [x] Little endian plain CDR is supported
@@ -21,20 +26,15 @@ For more information take a look at the [`Msg`](https://docs.rs/ros2_message/lat
 
 
 ## Resources
- - ROS2 documentation https://docs.ros.org/
- - Interface documentation https://docs.ros.org/en/iron/Concepts/Basic/About-Interfaces.html#messages
- - All CDR types are specified under "7.4.3.4 Functions related to data types and objects" at https://www.omg.org/spec/DDS-XTypes/1.3/PDF
+ - [ROS2 documentation](https://docs.ros.org/)
+ - [Interface documentation](https://docs.ros.org/en/iron/Concepts/Basic/About-Interfaces.html#messages)
+ - [CDR Spec](https://www.omg.org/spec/DDS-XTypes/1.3/PDF), CDR types are specified under 7.4.3.4
 
 ### Foxglove `.msg` file parsing implemenation
  - [foxglove/message-definition](https://github.com/foxglove/message-definition/)
 
 ### Foxglove dynamic decoding implementation
-  - ROS2 specific deserialization:
-    - [foxglove/rosmsg2-serialization/src/MessageReader.ts](https://github.com/foxglove/rosmsg2-serialization/blob/d262e58a47138c4725e0d7a4881eb45c7eea1cc2/src/MessageReader.ts)
-  - Foxglove CDR implementation
-    - [foxglove/cdr/src/CdrReader.ts](https://github.com/foxglove/cdr/blob/5cdd02e0be6fe5e7f4424f91d59d451f56459d33/src/CdrReader.ts)
-  - Overview of all the CDR encapsulation kinds
-    - [foxglove/cdr/src/EncapsulationKind.ts](https://github.com/foxglove/cdr/blob/5cdd02e0be6fe5e7f4424f91d59d451f56459d33/src/EncapsulationKind.ts)
-
-
-    https://github.com/foxglove/rosmsg/tree/main
+  - [ROS2 specific deserialization](https://github.com/foxglove/rosmsg2-serialization/blob/d262e58a47138c4725e0d7a4881eb45c7eea1cc2/src/MessageReader.ts)
+  - [CDR implementation](https://github.com/foxglove/cdr/blob/5cdd02e0be6fe5e7f4424f91d59d451f56459d33/src/CdrReader.ts)
+  - [Overview of all the CDR encapsulation kinds](https://github.com/foxglove/cdr/blob/5cdd02e0be6fe5e7f4424f91d59d451f56459d33/src/EncapsulationKind.ts)
+  - [ROS2 Message implementation](https://github.com/foxglove/rosmsg/tree/main)
