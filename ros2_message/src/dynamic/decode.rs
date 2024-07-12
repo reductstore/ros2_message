@@ -167,7 +167,7 @@ impl DynamicMsg {
         for field_info in msg.fields().iter() {
             let field_name = field_info.name().to_owned();
 
-            println!("{} - {:?}", &field_name, values);
+            // println!("{} - {:?}", &field_name, values);
 
             let field_value = match field_info.datatype() {
                 DataType::GlobalMessage(path) => {
