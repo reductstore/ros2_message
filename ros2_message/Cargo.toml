@@ -12,7 +12,7 @@ name = "ros2_message"
 readme = "../README.md"
 repository = "https://github.com/A-K-O-R-A/ros2_message"
 documentation = "https://docs.rs/ros2_message/0.0.2/ros2_message/"
-version = "0.0.3"
+version = "0.0.4"
 exclude = ["src/tests/*", "src/parse_msg/tests.rs"]
 
 [features]
