@@ -38,7 +38,7 @@ fn parse_summary(data: &[u8]) -> Result<Vec<Option<DynamicMsg>>> {
         let msg_definition_string = String::from_utf8(schema.data.to_vec())?;
         let dynamic_msg = DynamicMsg::new(&msg_name, &msg_definition_string)?;
 
-        // Save message efinition
+        // Save message definition
         message_definitions[*id as usize] = Some(dynamic_msg);
     }
 
