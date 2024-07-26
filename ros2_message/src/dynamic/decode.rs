@@ -9,7 +9,7 @@ use std::convert::TryInto;
 use std::io::{self, Read};
 
 type MyMap<K, V> = HashMap<K, V>;
-type MessageValues = Vec<Value>;
+pub(crate) type MessageValues = Vec<Value>;
 
 // Most of this code is copied from
 // https://github.com/adnanademovic/rosrust/blob/master/rosrust/src/dynamic_msg.rs
@@ -123,7 +123,7 @@ impl DynamicMsg {
     }
 
     /// This will read the provided reader to its end and return a map with all field names mapped to their values.
-    /// If you encounter perfomance problems you may want to take a look at the  [Self::decode_raw()] method instead
+    /// If you encounter perfomance problems you may want to take a look at the  [Self::decode_unmapped()] method instead
     ///
     /// # Errors
     ///
@@ -155,9 +155,14 @@ impl DynamicMsg {
     /// assert_eq!(message["value"], ros2_message::Value::F32(core::f32::consts::PI));
     /// ```
     pub fn decode<R: Read>(&self, r: R) -> Result<MyMap<String, Value>> {
-        let mut values = self.decode_message(self.msg(), r)?;
+        let values = self.decode_message(self.msg(), r)?;
 
-        Ok(self.map_field_names(self.msg(), &mut values)?)
+        self.map_values(values)
+    }
+
+    /// This maps the result of [Self::decode_unmapped()] to the result of [Self::decode()]
+    pub fn map_values(&self, mut values: Vec<Value>) -> Result<MyMap<String, Value>> {
+        self.map_field_names(self.msg(), &mut values)
     }
 
     // Map decoded field arrays to their field names for easy usage
@@ -232,13 +237,13 @@ impl DynamicMsg {
     /// "#;
     ///
     /// let dynamic_message = DynamicMsg::new("package/msg/SmallMsg", msg_definition).expect("The message definition was invalid");
-    /// let message = dynamic_message.decode_raw(&[0x00u8, 0x01, 0, 0, 157, 47, 136, 102, 42, 0, 0 ,0, 219, 15, 73, 64][..])
+    /// let message = dynamic_message.decode_unmapped(&[0x00u8, 0x01, 0, 0, 157, 47, 136, 102, 42, 0, 0 ,0, 219, 15, 73, 64][..])
     ///     .expect("The supplied bytes do not match the message definition");
     ///
     /// // Reading the second field of the message
     /// assert_eq!(message[1], ros2_message::Value::F32(core::f32::consts::PI));
     /// ```
-    pub fn decode_raw<R: Read>(&self, r: R) -> Result<MessageValues> {
+    pub fn decode_unmapped<R: Read>(&self, r: R) -> Result<MessageValues> {
         self.decode_message(self.msg(), r)
     }
 

@@ -16,13 +16,16 @@ version = "0.0.5"
 exclude = ["src/tests/*", "src/parse_msg/tests.rs"]
 
 [features]
-default = ["decode"]
+default = ["mcap", "decode"]
 decode = ["dep:byteorder", "dep:rustc-hash"]
+mcap = ["decode", "dep:mcap"]
 
 [dependencies]
 array-init = "2.0.0"
 byteorder = { version = "1.5.0", optional = true }
 rustc-hash = { version = "1.1.0", optional = true }
+mcap = { version = "0.9.1", optional = true }
+
 hex = "0.4.3"
 itertools = "0.10.1"
 lazy_static = "1.4.0"
