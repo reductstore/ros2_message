@@ -4,12 +4,12 @@ use byteorder::{ReadBytesExt, LE};
 use lazy_static::lazy_static;
 use regex::RegexBuilder;
 // use rustc_hash::FxHashMap;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::convert::TryInto;
 use std::hash::{BuildHasher, RandomState};
 use std::io::{self, Read};
 
-pub(crate) type MessageValues<S> = Vec<Value<S>>;
+pub(crate) type MessageValues<S> = VecDeque<Value<S>>;
 
 // Most of this code is copied from
 // https://github.com/adnanademovic/rosrust/blob/master/rosrust/src/dynamic_msg.rs
@@ -162,7 +162,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     }
 
     /// This maps the result of [Self::decode_unmapped()] to the result of [Self::decode()]
-    pub fn map_values(&self, mut values: Vec<Value<S>>) -> Result<HashMap<String, Value<S>, S>> {
+    pub fn map_values(&self, mut values: MessageValues<S>) -> Result<HashMap<String, Value<S>, S>> {
         self.map_field_names(self.msg(), &mut values)
     }
 
@@ -171,46 +171,43 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     fn map_field_names(
         &self,
         msg: &Msg<S>,
-        values: &mut Vec<Value<S>>,
+        values: &mut MessageValues<S>,
     ) -> Result<HashMap<String, Value<S>, S>> {
         let mut map = HashMap::with_capacity_and_hasher(msg.fields().len(), Default::default());
         for field_info in msg.fields().iter() {
             let field_name = field_info.name().to_owned();
 
             // println!("{} - {:?}", &field_name, values);
+            let value = values.pop_front().expect("what");
 
             let field_value = match field_info.datatype() {
                 DataType::GlobalMessage(path) => {
                     let msg = self.get_dependency(&path)?;
-                    let mut nested_values = match values.remove(0) {
-                        Value::Array(arr) => arr,
-                        _ => {
-                            return Err(Error::DecodingError {
+                    let Value::Array(nested_values) = value else {
+                        return Err(Error::DecodingError {
                                 err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
                                 field: field_info.clone().to_random_state(),
                                 msg: msg.clone().to_random_state(),
                                 offset: 0,
-                            })
-                        }
+                            });
                     };
 
-                    Value::Message(self.map_field_names(msg, &mut nested_values)?)
+                    Value::Message(self.map_field_names(msg, &mut VecDeque::from(nested_values))?)
                 }
                 DataType::LocalMessage(name) => {
                     let msg = self.get_dependency(&msg.path().peer(name))?;
-                    let mut nested_values = match values.remove(0) {
-                        Value::Array(arr) => arr,
-                        _ => return Err(Error::DecodingError {
+                    let Value::Array(nested_values) = value else {
+                        return Err(Error::DecodingError {
                                 err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
                                 field: field_info.clone().to_random_state(),
                                 msg: msg.clone().to_random_state(),
                                 offset: 0,
-                            }),
+                            });
                     };
 
-                    Value::Message(self.map_field_names(msg, &mut nested_values)?)
+                    Value::Message(self.map_field_names(msg, &mut VecDeque::from(nested_values))?)
                 }
-                _ => values.remove(0),
+                _ => value,
             };
 
             map.insert(field_name, field_value);
@@ -303,7 +300,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         msg: &Msg<S>,
         r: &mut ByteCounter<R>,
     ) -> Result<MessageValues<S>> {
-        let mut values = Vec::with_capacity(msg.fields().len());
+        let mut values = MessageValues::with_capacity(msg.fields().len());
         for field in msg.fields() {
             let val = match field.case() {
                 FieldCase::Const(_) => Ok(field.const_value().unwrap().clone()),
@@ -327,7 +324,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                 },
                 e => e,
             })?;
-            values.push(val);
+            values.push_back(val);
         }
 
         Ok(values)
@@ -422,13 +419,15 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
 
                 // Decoding is fully unmapped so messages are just expressed as
                 // arrays before they get mapped to field names
-                Value::Array(self.decode_message_inner(dependency, r)?)
+                Value::Array(self.decode_message_inner(dependency, r)?.into())
             }
             DataType::GlobalMessage(path) => {
                 // panic!("Global messages unsupported (Hasher) {path}");
 
                 let dependency = self.get_dependency(path)?;
-                self.decode_message_inner(dependency, r)?.into()
+                let vec: Vec<_> = self.decode_message_inner(dependency, r)?.into();
+
+                vec.into()
             }
         };
 

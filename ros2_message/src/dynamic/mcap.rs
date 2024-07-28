@@ -1,4 +1,7 @@
-use std::{hash::BuildHasher, ops::Deref};
+use std::{
+    hash::{BuildHasher, RandomState},
+    ops::Deref,
+};
 
 use mcap::{
     read::{RawMessage, RawMessageStream},
@@ -7,7 +10,10 @@ use mcap::{
 
 use super::DynamicMsg;
 
-pub struct UnmappedMcapMessageStream<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> {
+pub struct UnmappedMcapMessageStream<
+    'a,
+    S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState,
+> {
     message_definitions: Vec<Option<DynamicMsg<S>>>,
     raw_message_stream: mcap::read::RawMessageStream<'a>,
 }
@@ -76,7 +82,8 @@ impl<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> Iterator
     }
 }
 
-pub struct McapMessageStream<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> {
+pub struct McapMessageStream<'a, S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState>
+{
     message_definitions: Vec<Option<DynamicMsg<S>>>,
     unmapped_stream: UnmappedMcapMessageStream<'a, S>,
 }
@@ -109,7 +116,6 @@ impl<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> Iterator
         };
         // !TODO: Error handling
         let decoded_msg = dyn_msg.map_values(unmapped_msg).ok()?;
-
         Some(Ok((decoded_msg, raw_message)))
     }
 }
