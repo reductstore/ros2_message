@@ -4,7 +4,7 @@ use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt::{Display, Formatter};
-use std::hash::Hash;
+use std::hash::{BuildHasher, Hash, RandomState};
 
 /// Path to a ROS message with naming conventions tested.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,7 +49,10 @@ impl MessagePath {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(package: impl Into<String>, name: impl Into<String>) -> Result<Self> {
+    pub fn new<S: BuildHasher + Default + Clone + core::fmt::Debug>(
+        package: impl Into<String>,
+        name: impl Into<String>,
+    ) -> Result<Self, S> {
         let package = package.into();
         let name = name.into();
         if !is_valid_package_name(&package) {
@@ -85,7 +88,9 @@ impl MessagePath {
         }
     }
 
-    fn from_combined(input: &str) -> Result<Self> {
+    fn from_combined<S: BuildHasher + Default + Clone + core::fmt::Debug>(
+        input: &str,
+    ) -> Result<Self, S> {
         let parts = input.splitn(3, '/').collect::<Vec<&str>>();
         match parts[..] {
             [package, msg, name] => match msg {
@@ -128,9 +133,9 @@ impl Display for MessagePath {
 }
 
 impl<'a> TryFrom<&'a str> for MessagePath {
-    type Error = Error;
+    type Error = Error<RandomState>;
 
-    fn try_from(value: &'a str) -> Result<Self> {
+    fn try_from(value: &'a str) -> Result<Self, RandomState> {
         Self::from_combined(value)
     }
 }

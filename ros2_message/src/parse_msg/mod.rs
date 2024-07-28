@@ -1,3 +1,5 @@
+use std::hash::BuildHasher;
+
 use crate::{Error, FieldCase, FieldInfo, Result};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -16,13 +18,17 @@ struct FieldLine {
 }
 
 #[inline]
-pub fn match_lines(data: &str) -> Result<Vec<FieldInfo>> {
+pub fn match_lines<S: BuildHasher + Default + Clone + core::fmt::Debug>(
+    data: &str,
+) -> Result<Vec<FieldInfo<S>>, S> {
     data.split('\n')
         .filter_map(match_line)
-        .collect::<Result<_>>()
+        .collect::<Result<_, S>>()
 }
 
-fn match_line(data: &str) -> Option<Result<FieldInfo>> {
+fn match_line<S: BuildHasher + Default + Clone + core::fmt::Debug>(
+    data: &str,
+) -> Option<Result<FieldInfo<S>, S>> {
     if let Some((info, data)) = match_const_string(data.trim()) {
         return Some(FieldInfo::new(
             &info.field_type,
@@ -224,7 +230,9 @@ fn match_default_numeric(data: &str) -> Option<(FieldLine, String)> {
 }
 
 #[inline]
-fn strip_useless(data: &str) -> Result<&str> {
+fn strip_useless<S: BuildHasher + Default + Clone + core::fmt::Debug>(
+    data: &str,
+) -> Result<&str, S> {
     Ok(data
         .split('#')
         .next()

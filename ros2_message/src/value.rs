@@ -5,14 +5,22 @@ use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::hash::{BuildHasher, RandomState};
 use std::iter::FromIterator;
 
+use derive_where::derive_where;
+
 /// Represents an arbitrary ROS message.
-pub type MessageValue = HashMap<String, Value>;
+pub type MessageValue<S> = HashMap<String, Value<S>, S>; //  = RandomState
+
+#[derive(PartialEq, Eq, Serialize)]
+pub struct A<S: BuildHasher>(HashMap<String, String, S>); //  = RandomState
 
 /// Represents an arbitrary ROS message or value in it.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Value {
+#[derive(Serialize, Deserialize)]
+#[derive_where(Clone, PartialEq, Debug)]
+pub enum Value<S: BuildHasher + Default + Clone + core::fmt::Debug> {
+    //  = RandomState
     /// Represents `bool`.
     Bool(bool),
     /// Represents `int8` or `byte`.
@@ -44,12 +52,12 @@ pub enum Value {
     /// Represents `some_type[]` or `some_type[length]`.
     ///
     /// For example: `float32[64]`, `geometry_msgs/Point[]`.
-    Array(Vec<Value>),
+    Array(Vec<Value<S>>),
     /// Represents an embedded message.
-    Message(MessageValue),
+    Message(HashMap<String, Value<S>, S>),
 }
 
-impl Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Value<S> {
     fn fmt_indented(&self, indentation: usize, step: usize, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Value::Bool(v) => v.fmt(f),
@@ -359,7 +367,7 @@ impl Value {
     /// );
     /// assert!(Value::U32(12).as_slice().is_none());
     /// ```
-    pub fn as_slice(&self) -> Option<&[Value]> {
+    pub fn as_slice(&self) -> Option<&[Value<S>]> {
         if let Value::Array(value) = self {
             Some(value)
         } else {
@@ -379,7 +387,7 @@ impl Value {
     /// );
     /// assert!(Value::U32(12).try_into_vec().is_none());
     /// ```
-    pub fn try_into_vec(self) -> Option<Vec<Value>> {
+    pub fn try_into_vec(self) -> Option<Vec<Value<S>>> {
         if let Value::Array(value) = self {
             Some(value)
         } else {
@@ -394,13 +402,13 @@ impl Value {
     /// ```
     /// # use ros2_message::Value;
     /// # use std::collections::HashMap;
-    /// let mut data = HashMap::<String, Value>::new();
+    /// let mut data = HashMap::<String, Value<S>>::new();
     /// data.insert("foo".into(), true.into());
     /// data.insert("bar".into(), false.into());
     /// assert_eq!(Value::Message(data.clone()).as_map(), Some(&data));
     /// assert!(Value::U32(12).as_map().is_none());
     /// ```
-    pub fn as_map(&self) -> Option<&MessageValue> {
+    pub fn as_map(&self) -> Option<&MessageValue<S>> {
         if let Value::Message(value) = self {
             Some(value)
         } else {
@@ -415,13 +423,13 @@ impl Value {
     /// ```
     /// # use ros2_message::Value;
     /// # use std::collections::HashMap;
-    /// let mut data = HashMap::<String, Value>::new();
+    /// let mut data = HashMap::<String, Value<S>>::new();
     /// data.insert("foo".into(), true.into());
     /// data.insert("bar".into(), false.into());
     /// assert_eq!(Value::Message(data.clone()).try_into_map(), Some(data));
     /// assert!(Value::U32(12).try_into_map().is_none());
     /// ```
-    pub fn try_into_map(self) -> Option<MessageValue> {
+    pub fn try_into_map(self) -> Option<MessageValue<S>> {
         if let Value::Message(value) = self {
             Some(value)
         } else {
@@ -430,230 +438,238 @@ impl Value {
     }
 }
 
-impl Display for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Display for Value<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.fmt_indented(0, 2, f)
     }
 }
 
-impl From<bool> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<bool> for Value<S> {
     fn from(v: bool) -> Self {
         Self::Bool(v)
     }
 }
 
-impl From<i8> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<i8> for Value<S> {
     fn from(v: i8) -> Self {
         Self::I8(v)
     }
 }
 
-impl From<i16> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<i16> for Value<S> {
     fn from(v: i16) -> Self {
         Self::I16(v)
     }
 }
 
-impl From<i32> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<i32> for Value<S> {
     fn from(v: i32) -> Self {
         Self::I32(v)
     }
 }
 
-impl From<i64> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<i64> for Value<S> {
     fn from(v: i64) -> Self {
         Self::I64(v)
     }
 }
 
-impl From<u8> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<u8> for Value<S> {
     fn from(v: u8) -> Self {
         Self::U8(v)
     }
 }
 
-impl From<u16> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<u16> for Value<S> {
     fn from(v: u16) -> Self {
         Self::U16(v)
     }
 }
 
-impl From<u32> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<u32> for Value<S> {
     fn from(v: u32) -> Self {
         Self::U32(v)
     }
 }
 
-impl From<u64> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<u64> for Value<S> {
     fn from(v: u64) -> Self {
         Self::U64(v)
     }
 }
 
-impl From<f32> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<f32> for Value<S> {
     fn from(v: f32) -> Self {
         Self::F32(v)
     }
 }
 
-impl From<f64> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<f64> for Value<S> {
     fn from(v: f64) -> Self {
         Self::F64(v)
     }
 }
 
-impl From<String> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<String> for Value<S> {
     fn from(v: String) -> Self {
         Self::String(v)
     }
 }
 
-impl From<Time> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<Time> for Value<S> {
     fn from(v: Time) -> Self {
         Self::Time(v)
     }
 }
 
-impl From<Duration> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<Duration> for Value<S> {
     fn from(v: Duration) -> Self {
         Self::Duration(v)
     }
 }
 
-impl<T: Into<Value>> From<Vec<T>> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug, T: Into<Value<S>>> From<Vec<T>>
+    for Value<S>
+{
     fn from(v: Vec<T>) -> Self {
         Self::Array(v.into_iter().map(Into::into).collect())
     }
 }
 
-impl<T: Into<Value>, const L: usize> From<[T; L]> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug, T: Into<Value<S>>, const L: usize>
+    From<[T; L]> for Value<S>
+{
     fn from(v: [T; L]) -> Self {
         Self::Array(IntoIterator::into_iter(v).map(Into::into).collect())
     }
 }
 
-impl From<HashMap<String, Value>> for Value {
-    fn from(v: HashMap<String, Value>) -> Self {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<HashMap<String, Value<S>, S>>
+    for Value<S>
+{
+    fn from(v: HashMap<String, Value<S>, S>) -> Self {
         Self::Message(v)
     }
 }
 
-impl TryFrom<Value> for bool {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for bool {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_bool().ok_or(())
     }
 }
 
-impl TryFrom<Value> for i8 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for i8 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_i8().ok_or(())
     }
 }
 
-impl TryFrom<Value> for i16 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for i16 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_i16().ok_or(())
     }
 }
 
-impl TryFrom<Value> for i32 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for i32 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_i32().ok_or(())
     }
 }
 
-impl TryFrom<Value> for i64 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for i64 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_i64().ok_or(())
     }
 }
 
-impl TryFrom<Value> for u8 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for u8 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_u8().ok_or(())
     }
 }
 
-impl TryFrom<Value> for u16 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for u16 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_u16().ok_or(())
     }
 }
 
-impl TryFrom<Value> for u32 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for u32 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_u32().ok_or(())
     }
 }
 
-impl TryFrom<Value> for u64 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for u64 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_u64().ok_or(())
     }
 }
 
-impl TryFrom<Value> for f32 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for f32 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_f32().ok_or(())
     }
 }
 
-impl TryFrom<Value> for f64 {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for f64 {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_f64().ok_or(())
     }
 }
 
-impl TryFrom<Value> for String {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for String {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.try_into_string().ok_or(())
     }
 }
 
-impl TryFrom<Value> for Time {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for Time {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_time().ok_or(())
     }
 }
 
-impl TryFrom<Value> for Duration {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>> for Duration {
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.as_duration().ok_or(())
     }
 }
 
-impl<T: TryFrom<Value>> TryFrom<Value> for Vec<T> {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug, T: TryFrom<Value<S>>> TryFrom<Value<S>>
+    for Vec<T>
+{
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         let value = value.try_into_vec().ok_or(())?;
         value
             .into_iter()
@@ -663,10 +679,12 @@ impl<T: TryFrom<Value>> TryFrom<Value> for Vec<T> {
     }
 }
 
-impl<T: TryFrom<Value>, const L: usize> TryFrom<Value> for [T; L] {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug, T: TryFrom<Value<S>>, const L: usize>
+    TryFrom<Value<S>> for [T; L]
+{
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         let value = value.try_into_vec().ok_or(())?;
         if value.len() != L {
             return Err(());
@@ -675,15 +693,19 @@ impl<T: TryFrom<Value>, const L: usize> TryFrom<Value> for [T; L] {
     }
 }
 
-impl TryFrom<Value> for HashMap<String, Value> {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<Value<S>>
+    for HashMap<String, Value<S>, S>
+{
     type Error = ();
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         value.try_into_map().ok_or(())
     }
 }
 
-impl<K: Into<String>, T: Into<Value>> FromIterator<(K, T)> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug, K: Into<String>, T: Into<Value<S>>>
+    FromIterator<(K, T)> for Value<S>
+{
     fn from_iter<I: IntoIterator<Item = (K, T)>>(iter: I) -> Self {
         Self::Message(
             iter.into_iter()
@@ -693,7 +715,9 @@ impl<K: Into<String>, T: Into<Value>> FromIterator<(K, T)> for Value {
     }
 }
 
-impl<T: Into<Value>> FromIterator<T> for Value {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug, T: Into<Value<S>>> FromIterator<T>
+    for Value<S>
+{
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Self::Array(iter.into_iter().map(Into::into).collect())
     }

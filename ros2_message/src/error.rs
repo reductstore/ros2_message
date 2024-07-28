@@ -1,10 +1,13 @@
-use std::backtrace::Backtrace;
+use std::{
+    backtrace::Backtrace,
+    hash::{BuildHasher, RandomState},
+};
 
-use crate::{FieldInfo, MessagePath, Msg};
+use crate::{value, FieldInfo, MessagePath, Msg};
 
 /// Enumeration of all errors that can be returned.
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub enum Error<S: BuildHasher + Default + Clone + core::fmt::Debug> {
     /// Message doesn't have a valid format.
     ///
     /// Message names must follow the `package_name/MessageName` format.
@@ -56,9 +59,9 @@ pub enum Error {
     #[error("failed to decode field:\n\n\"{field}\"\n\nGot `{err}` at byte {offset}\n\n{msg}")]
     DecodingError {
         /// The associated message definition that was used to decode the data
-        msg: Msg,
+        msg: Msg<S>,
         /// The field that the decoder failed at
-        field: FieldInfo,
+        field: FieldInfo<S>,
         /// The byte offset the deocder failed at
         offset: usize,
         /// The underlying io error
@@ -66,14 +69,14 @@ pub enum Error {
     },
 }
 
-impl From<std::io::Error> for Error {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<std::io::Error> for Error<S> {
     fn from(value: std::io::Error) -> Self {
         let trace = Backtrace::force_capture();
         // TODO!: this probably isn't wanted behaviour but left in for debugging purposes for now
         eprintln!("{}", trace);
 
         let default_msg = Msg::new(
-            MessagePath::new("placeholder", "PlaceholderMessage").unwrap(),
+            MessagePath::new::<S>("placeholder", "PlaceholderMessage").unwrap(),
             "",
         )
         .unwrap();
@@ -89,5 +92,48 @@ impl From<std::io::Error> for Error {
     }
 }
 
+/*
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<Error<S>> for &Error<RandomState>
+where
+    Msg<RandomState>: From<Msg<S>>,
+    FieldInfo<RandomState>: From<FieldInfo<S>>,
+{
+    fn from(value: Error<S>) -> Self {
+        use Error::*;
+
+        &match value {
+            BadConstant {
+                name,
+                datatype,
+                value,
+            } => BadConstant {
+                name,
+                datatype,
+                value,
+            },
+            DecodingError {
+                msg,
+                field,
+                offset,
+                err,
+            } => DecodingError {
+                msg: msg.into(),
+                field: field.into(),
+                offset,
+                err,
+            },
+            BadMessageContent(s) => BadMessageContent(s),
+            InvalidMessagePath { name, reason } => InvalidMessagePath { name, reason },
+            MessageDependencyMissing { package, name } => {
+                MessageDependencyMissing { package, name }
+            }
+            UnsupportedDataType { name, reason } => UnsupportedDataType { name, reason },
+        }
+    }
+}
+*/
+
 /// Convenience type for shorter return value syntax of this crate's errors.
-pub type Result<T> = std::result::Result<T, Error>;
+/// = RandomState
+pub type Result<T, S: BuildHasher + Default + Clone + core::fmt::Debug> =
+    std::result::Result<T, Error<S>>;

@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{hash::BuildHasher, ops::Deref};
 
 use mcap::{
     read::{RawMessage, RawMessageStream},
@@ -7,15 +7,15 @@ use mcap::{
 
 use super::DynamicMsg;
 
-pub struct UnmappedMcapMessageStream<'a> {
-    message_definitions: Vec<Option<DynamicMsg>>,
+pub struct UnmappedMcapMessageStream<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> {
+    message_definitions: Vec<Option<DynamicMsg<S>>>,
     raw_message_stream: mcap::read::RawMessageStream<'a>,
 }
 
-impl<'a> UnmappedMcapMessageStream<'a> {
+impl<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> UnmappedMcapMessageStream<'a, S> {
     pub fn new<D: Deref<Target = [u8]>>(
         data: &'a D,
-    ) -> McapResult<(Self, Vec<Option<DynamicMsg>>)> {
+    ) -> McapResult<(Self, Vec<Option<DynamicMsg<S>>>)> {
         let Some(Summary { channels, .. }) = Summary::read(data)? else {
             // !TODO: proper error
             return Err(McapError::UnknownSchema("".into(), 0));
@@ -54,8 +54,10 @@ impl<'a> UnmappedMcapMessageStream<'a> {
     }
 }
 
-impl<'a> Iterator for UnmappedMcapMessageStream<'a> {
-    type Item = McapResult<(super::decode::MessageValues, RawMessage<'a>)>;
+impl<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> Iterator
+    for UnmappedMcapMessageStream<'a, S>
+{
+    type Item = McapResult<(super::decode::MessageValues<S>, RawMessage<'a>)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let raw_message = match self.raw_message_stream.next()? {
@@ -74,12 +76,12 @@ impl<'a> Iterator for UnmappedMcapMessageStream<'a> {
     }
 }
 
-pub struct McapMessageStream<'a> {
-    message_definitions: Vec<Option<DynamicMsg>>,
-    unmapped_stream: UnmappedMcapMessageStream<'a>,
+pub struct McapMessageStream<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> {
+    message_definitions: Vec<Option<DynamicMsg<S>>>,
+    unmapped_stream: UnmappedMcapMessageStream<'a, S>,
 }
 
-impl<'a> McapMessageStream<'a> {
+impl<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> McapMessageStream<'a, S> {
     pub fn new<D: Deref<Target = [u8]>>(data: &'a D) -> McapResult<Self> {
         let (inner_stream, definitions) = UnmappedMcapMessageStream::new(data)?;
 
@@ -90,8 +92,10 @@ impl<'a> McapMessageStream<'a> {
     }
 }
 
-impl<'a> Iterator for McapMessageStream<'a> {
-    type Item = McapResult<(crate::MessageValue, RawMessage<'a>)>;
+impl<'a, S: BuildHasher + Default + Clone + core::fmt::Debug> Iterator
+    for McapMessageStream<'a, S>
+{
+    type Item = McapResult<(crate::MessageValue<S>, RawMessage<'a>)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let (unmapped_msg, raw_message) = match self.unmapped_stream.next()? {

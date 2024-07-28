@@ -1,29 +1,32 @@
 use crate::{Error, MessagePath, Msg, Result};
+use derive_where::derive_where;
 use lazy_static::lazy_static;
 use regex::RegexBuilder;
 use serde_derive::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::Formatter;
+use std::hash::BuildHasher;
 
 /// A ROS service parsed from a `srv` file.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
+#[derive_where(Clone, PartialEq, Eq, Hash, Debug)]
 #[serde(into = "SrvSerde")]
 #[serde(try_from = "SrvSerde")]
-pub struct Srv {
+pub struct Srv<S: BuildHasher + Default + Clone + core::fmt::Debug> {
     path: MessagePath,
     source: String,
-    req: Msg,
-    res: Msg,
+    req: Msg<S>,
+    res: Msg<S>,
 }
 
-impl fmt::Display for Srv {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> fmt::Display for Srv<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.source.fmt(f)
     }
 }
 
-impl Srv {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Srv<S> {
     /// Create a service from a passed in path and source.
     ///
     /// # Errors
@@ -59,7 +62,7 @@ impl Srv {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(path: MessagePath, source: impl Into<String>) -> Result<Srv> {
+    pub fn new(path: MessagePath, source: impl Into<String>) -> Result<Srv<S>, S> {
         let source = source.into();
         let (req, res) = Self::build_req_res(&path, &source)?;
         Ok(Srv {
@@ -81,16 +84,16 @@ impl Srv {
     }
 
     /// Returns the request message.
-    pub fn request(&self) -> &Msg {
+    pub fn request(&self) -> &Msg<S> {
         &self.req
     }
 
     /// Returns the response message.
-    pub fn response(&self) -> &Msg {
+    pub fn response(&self) -> &Msg<S> {
         &self.res
     }
 
-    fn build_req_res(path: &MessagePath, source: &str) -> Result<(Msg, Msg)> {
+    fn build_req_res(path: &MessagePath, source: &str) -> Result<(Msg<S>, Msg<S>), S> {
         lazy_static! {
             static ref RE_SPLIT: regex::Regex = RegexBuilder::new("^---$")
                 .multi_line(true)
@@ -128,16 +131,16 @@ struct SrvSerde {
     source: String,
 }
 
-impl TryFrom<SrvSerde> for Srv {
-    type Error = Error;
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<SrvSerde> for Srv<S> {
+    type Error = Error<S>;
 
-    fn try_from(src: SrvSerde) -> Result<Self> {
+    fn try_from(src: SrvSerde) -> Result<Self, S> {
         Self::new(src.path, &src.source)
     }
 }
 
-impl From<Srv> for SrvSerde {
-    fn from(src: Srv) -> Self {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<Srv<S>> for SrvSerde {
+    fn from(src: Srv<S>) -> Self {
         Self {
             path: src.path,
             source: src.source,

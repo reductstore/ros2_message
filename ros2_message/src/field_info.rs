@@ -1,10 +1,11 @@
 use crate::{DataType, Error, MessagePath, Result, Value};
+use derive_where::derive_where;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::fmt::Formatter;
-use std::hash::{Hash, Hasher};
+use std::hash::{BuildHasher, Hash, Hasher};
 
 /// Represents all possible variants of a message field
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -55,18 +56,19 @@ impl<T> PartialEq for Uncompared<T> {
 impl<T> Eq for Uncompared<T> {}
 
 /// Full description of one field in a `msg` or `srv` file.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+#[derive_where(Clone, PartialEq, Eq, Hash)]
 #[serde(into = "FieldInfoSerde")]
 #[serde(try_from = "FieldInfoSerde")]
-pub struct FieldInfo {
+pub struct FieldInfo<S: BuildHasher + Default + Clone + core::fmt::Debug> {
     datatype: DataType,
     name: String,
     case: FieldCase,
-    const_value: Uncompared<Option<Value>>,
-    default_value: Uncompared<Option<Value>>,
+    const_value: Uncompared<Option<Value<S>>>,
+    default_value: Uncompared<Option<Value<S>>>,
 }
 
-impl fmt::Display for FieldInfo {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> fmt::Display for FieldInfo<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self.case {
             FieldCase::Unit => write!(f, "{} {}", self.datatype, self.name),
@@ -78,7 +80,7 @@ impl fmt::Display for FieldInfo {
     }
 }
 
-impl FieldInfo {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
     /// Create a field of the provided type, name and variant.
     ///
     /// # Errors
@@ -105,12 +107,19 @@ impl FieldInfo {
     /// # use ros2_message::{FieldInfo, FieldCase};
     /// assert!(FieldInfo::new("bad/field/type", "foo", FieldCase::Vector).is_err());
     /// ```
-    pub fn new(datatype: &str, name: impl Into<String>, case: FieldCase) -> Result<FieldInfo> {
+    pub fn new(
+        datatype: &str,
+        name: impl Into<String>,
+        case: FieldCase,
+    ) -> Result<FieldInfo<S>, S> {
         Self::evaluate(datatype.try_into()?, name.into(), case)
     }
 
-    fn evaluate(datatype: DataType, name: String, case: FieldCase) -> Result<FieldInfo> {
-        fn parse_datatype_const(dtype: &DataType, raw_value: &str) -> Option<Value> {
+    fn evaluate(datatype: DataType, name: String, case: FieldCase) -> Result<FieldInfo<S>, S> {
+        fn parse_datatype_const<S: BuildHasher + Default + Clone + core::fmt::Debug>(
+            dtype: &DataType,
+            raw_value: &str,
+        ) -> Option<Value<S>> {
             match dtype {
                 DataType::Bool => Some(Value::Bool(raw_value != "0")),
                 DataType::I8(_) => raw_value.parse().ok().map(Value::I8),
@@ -186,7 +195,7 @@ impl FieldInfo {
     }
 
     /// Returns the stored value if a constant field.
-    pub fn const_value(&self) -> Option<&Value> {
+    pub fn const_value(&self) -> Option<&Value<S>> {
         self.const_value.inner.as_ref()
     }
 
@@ -274,8 +283,8 @@ impl FieldInfo {
     pub fn md5_string(
         &self,
         package: &str,
-        hashes: &HashMap<MessagePath, String>,
-    ) -> Result<String> {
+        hashes: &HashMap<MessagePath, String, S>,
+    ) -> Result<String, S> {
         let datatype = self.datatype.md5_str(package, hashes)?;
         Ok(match (self.datatype.is_builtin(), &self.case) {
             (_, FieldCase::Const(v)) => format!("{} {}={}", datatype, self.name, v),
@@ -330,16 +339,16 @@ struct FieldInfoSerde {
     case: FieldCase,
 }
 
-impl TryFrom<FieldInfoSerde> for FieldInfo {
-    type Error = Error;
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<FieldInfoSerde> for FieldInfo<S> {
+    type Error = Error<S>;
 
-    fn try_from(src: FieldInfoSerde) -> Result<Self> {
+    fn try_from(src: FieldInfoSerde) -> Result<Self, S> {
         Self::evaluate(src.datatype, src.name, src.case)
     }
 }
 
-impl From<FieldInfo> for FieldInfoSerde {
-    fn from(src: FieldInfo) -> Self {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<FieldInfo<S>> for FieldInfoSerde {
+    fn from(src: FieldInfo<S>) -> Self {
         Self {
             datatype: src.datatype,
             name: src.name,

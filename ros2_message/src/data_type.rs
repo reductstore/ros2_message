@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::Formatter;
+use std::hash::{BuildHasher, RandomState};
 
 /// Enumerates all data types possible in a ROS message.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -83,9 +84,9 @@ impl From<DataType> for String {
 }
 
 impl TryFrom<&str> for DataType {
-    type Error = Error;
+    type Error = Error<RandomState>;
 
-    fn try_from(src: &str) -> Result<Self> {
+    fn try_from(src: &str) -> Result<Self, RandomState> {
         Self::parse(src)
     }
 }
@@ -162,7 +163,9 @@ impl DataType {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn parse(datatype: &str) -> Result<Self> {
+    pub fn parse<S: BuildHasher + Default + Clone + core::fmt::Debug>(
+        datatype: &str,
+    ) -> Result<Self, S> {
         Ok(match datatype {
             BOOL_KEY => DataType::Bool,
             INT8_KEY => DataType::I8(I8Variant::Int8),
@@ -272,11 +275,11 @@ impl DataType {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn md5_str<'a>(
+    pub fn md5_str<'a, S: BuildHasher + Default + Clone + core::fmt::Debug>(
         &self,
         package: &str,
-        hashes: &'a HashMap<MessagePath, String>,
-    ) -> Result<&'a str> {
+        hashes: &'a HashMap<MessagePath, String, S>,
+    ) -> Result<&'a str, S> {
         Ok(match *self {
             DataType::Bool => BOOL_KEY,
             DataType::I8(I8Variant::Int8) => INT8_KEY,

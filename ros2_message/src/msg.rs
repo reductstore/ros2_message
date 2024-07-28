@@ -1,27 +1,30 @@
 use crate::{parse_msg::match_lines, DataType, Error, FieldInfo, MessagePath, Result, Value};
+use derive_where::derive_where;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::Formatter;
+use std::hash::{BuildHasher, RandomState};
 
 /// A ROS message parsed from a `msg` file.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+#[derive_where(Clone, PartialEq, Eq, Hash)]
 #[serde(into = "MsgSerde")]
 #[serde(try_from = "MsgSerde")]
-pub struct Msg {
+pub struct Msg<S: BuildHasher + Default + Clone + core::fmt::Debug> {
     path: MessagePath,
-    fields: Vec<FieldInfo>,
+    fields: Vec<FieldInfo<S>>,
     source: String,
 }
 
-impl fmt::Display for Msg {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> fmt::Display for Msg<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.source.fmt(f)
     }
 }
 
-impl Msg {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     /// Create a message from a passed in path and source.
     ///
     /// # Errors
@@ -52,7 +55,7 @@ impl Msg {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(path: MessagePath, source: &str) -> Result<Msg> {
+    pub fn new(path: MessagePath, source: &str) -> Result<Msg<S>, S> {
         let source = source.trim().to_owned();
         let fields = match_lines(&source)?;
         Ok(Msg {
@@ -94,7 +97,7 @@ impl Msg {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn constants(&self) -> HashMap<String, Value> {
+    pub fn constants(&self) -> HashMap<String, Value<S>, S> {
         self.fields
             .iter()
             .filter_map(|field| {
@@ -110,7 +113,7 @@ impl Msg {
     }
 
     /// Returns a slice of all fields.
-    pub fn fields(&self) -> &[FieldInfo] {
+    pub fn fields(&self) -> &[FieldInfo<S>] {
         &self.fields
     }
 
@@ -177,7 +180,7 @@ impl Msg {
     ///
     /// An error is returned if some dependency is missing in the hashes.
     #[cfg(test)]
-    pub fn calculate_md5(&self, hashes: &HashMap<MessagePath, String>) -> Result<String> {
+    pub fn calculate_md5(&self, hashes: &HashMap<MessagePath, String>) -> Result<String, S> {
         use md5::{Digest, Md5};
 
         let mut hasher = Md5::new();
@@ -233,19 +236,22 @@ impl Msg {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get_md5_representation(&self, hashes: &HashMap<MessagePath, String>) -> Result<String> {
+    pub fn get_md5_representation(
+        &self,
+        hashes: &HashMap<MessagePath, String, S>,
+    ) -> Result<String, S> {
         let constants = self
             .fields
             .iter()
             .filter(|v| v.is_constant())
             .map(|v| v.md5_string(self.path.package(), hashes))
-            .collect::<Result<Vec<String>>>()?;
+            .collect::<Result<Vec<String>, S>>()?;
         let fields = self
             .fields
             .iter()
             .filter(|v| !v.is_constant())
             .map(|v| v.md5_string(self.path.package(), hashes))
-            .collect::<Result<Vec<String>>>()?;
+            .collect::<Result<Vec<String>, S>>()?;
         let representation = constants
             .into_iter()
             .chain(fields)
@@ -270,16 +276,16 @@ struct MsgSerde {
     source: String,
 }
 
-impl TryFrom<MsgSerde> for Msg {
-    type Error = Error;
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<MsgSerde> for Msg<S> {
+    type Error = Error<S>;
 
-    fn try_from(src: MsgSerde) -> Result<Self> {
+    fn try_from(src: MsgSerde) -> Result<Self, S> {
         Self::new(src.path, &src.source)
     }
 }
 
-impl From<Msg> for MsgSerde {
-    fn from(src: Msg) -> Self {
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<Msg<S>> for MsgSerde {
+    fn from(src: Msg<S>) -> Self {
         Self {
             path: src.path,
             source: src.source,

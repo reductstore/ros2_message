@@ -11,3 +11,7 @@ Cargo.lock
 /rosrust/target/
 
 /.vscode/
+
+# Perf & Flamegraphs
+perf.*
+*.svg
