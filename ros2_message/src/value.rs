@@ -19,7 +19,7 @@ pub struct A<S: BuildHasher>(HashMap<String, String, S>); //  = RandomState
 /// Represents an arbitrary ROS message or value in it.
 #[derive(Serialize, Deserialize)]
 #[derive_where(Clone, PartialEq, Debug)]
-pub enum Value<S: BuildHasher + Default + Clone + core::fmt::Debug> {
+pub enum Value<S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState> {
     //  = RandomState
     /// Represents `bool`.
     Bool(bool),
@@ -434,6 +434,31 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Value<S> {
             Some(value)
         } else {
             None
+        }
+    }
+
+    pub(crate) fn to_random_state(self) -> Value<RandomState> {
+        match self {
+            Value::Bool(v) => Value::Bool(v),
+            Value::I8(v) => Value::I8(v),
+            Value::I16(v) => Value::I16(v),
+            Value::I32(v) => Value::I32(v),
+            Value::I64(v) => Value::I64(v),
+            Value::U8(v) => Value::U8(v),
+            Value::U16(v) => Value::U16(v),
+            Value::U32(v) => Value::U32(v),
+            Value::U64(v) => Value::U64(v),
+            Value::F32(v) => Value::F32(v),
+            Value::F64(v) => Value::F64(v),
+            Value::String(v) => Value::String(v),
+            Value::Time(v) => Value::Time(v),
+            Value::Duration(v) => Value::Duration(v),
+            Value::Array(v) => Value::Array(v.into_iter().map(Self::to_random_state).collect()),
+            Value::Message(v) => Value::Message(
+                v.into_iter()
+                    .map(|(k, v)| (k, v.to_random_state()))
+                    .collect(),
+            ),
         }
     }
 }

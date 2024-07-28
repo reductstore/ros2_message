@@ -20,15 +20,15 @@ struct FieldLine {
 #[inline]
 pub fn match_lines<S: BuildHasher + Default + Clone + core::fmt::Debug>(
     data: &str,
-) -> Result<Vec<FieldInfo<S>>, S> {
+) -> Result<Vec<FieldInfo<S>>> {
     data.split('\n')
         .filter_map(match_line)
-        .collect::<Result<_, S>>()
+        .collect::<Result<_>>()
 }
 
 fn match_line<S: BuildHasher + Default + Clone + core::fmt::Debug>(
     data: &str,
-) -> Option<Result<FieldInfo<S>, S>> {
+) -> Option<Result<FieldInfo<S>>> {
     if let Some((info, data)) = match_const_string(data.trim()) {
         return Some(FieldInfo::new(
             &info.field_type,
@@ -230,9 +230,7 @@ fn match_default_numeric(data: &str) -> Option<(FieldLine, String)> {
 }
 
 #[inline]
-fn strip_useless<S: BuildHasher + Default + Clone + core::fmt::Debug>(
-    data: &str,
-) -> Result<&str, S> {
+fn strip_useless(data: &str) -> Result<&str> {
     Ok(data
         .split('#')
         .next()

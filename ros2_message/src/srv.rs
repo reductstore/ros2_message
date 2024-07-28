@@ -6,14 +6,14 @@ use serde_derive::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::Formatter;
-use std::hash::BuildHasher;
+use std::hash::{BuildHasher, RandomState};
 
 /// A ROS service parsed from a `srv` file.
 #[derive(Serialize, Deserialize)]
 #[derive_where(Clone, PartialEq, Eq, Hash, Debug)]
 #[serde(into = "SrvSerde")]
 #[serde(try_from = "SrvSerde")]
-pub struct Srv<S: BuildHasher + Default + Clone + core::fmt::Debug> {
+pub struct Srv<S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState> {
     path: MessagePath,
     source: String,
     req: Msg<S>,
@@ -62,7 +62,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Srv<S> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(path: MessagePath, source: impl Into<String>) -> Result<Srv<S>, S> {
+    pub fn new(path: MessagePath, source: impl Into<String>) -> Result<Srv<S>> {
         let source = source.into();
         let (req, res) = Self::build_req_res(&path, &source)?;
         Ok(Srv {
@@ -93,7 +93,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Srv<S> {
         &self.res
     }
 
-    fn build_req_res(path: &MessagePath, source: &str) -> Result<(Msg<S>, Msg<S>), S> {
+    fn build_req_res(path: &MessagePath, source: &str) -> Result<(Msg<S>, Msg<S>)> {
         lazy_static! {
             static ref RE_SPLIT: regex::Regex = RegexBuilder::new("^---$")
                 .multi_line(true)
@@ -132,9 +132,9 @@ struct SrvSerde {
 }
 
 impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<SrvSerde> for Srv<S> {
-    type Error = Error<S>;
+    type Error = Error;
 
-    fn try_from(src: SrvSerde) -> Result<Self, S> {
+    fn try_from(src: SrvSerde) -> Result<Self> {
         Self::new(src.path, &src.source)
     }
 }

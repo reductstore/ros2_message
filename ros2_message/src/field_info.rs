@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::fmt::Formatter;
-use std::hash::{BuildHasher, Hash, Hasher};
+use std::hash::{BuildHasher, Hash, Hasher, RandomState};
 
 /// Represents all possible variants of a message field
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -55,12 +55,20 @@ impl<T> PartialEq for Uncompared<T> {
 
 impl<T> Eq for Uncompared<T> {}
 
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Uncompared<Option<Value<S>>> {
+    pub(crate) fn to_random_state(self) -> Uncompared<Option<Value<RandomState>>> {
+        Uncompared {
+            inner: self.inner.map(Value::to_random_state),
+        }
+    }
+}
+
 /// Full description of one field in a `msg` or `srv` file.
 #[derive(Debug, Serialize, Deserialize)]
 #[derive_where(Clone, PartialEq, Eq, Hash)]
 #[serde(into = "FieldInfoSerde")]
 #[serde(try_from = "FieldInfoSerde")]
-pub struct FieldInfo<S: BuildHasher + Default + Clone + core::fmt::Debug> {
+pub struct FieldInfo<S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState> {
     datatype: DataType,
     name: String,
     case: FieldCase,
@@ -107,15 +115,11 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
     /// # use ros2_message::{FieldInfo, FieldCase};
     /// assert!(FieldInfo::new("bad/field/type", "foo", FieldCase::Vector).is_err());
     /// ```
-    pub fn new(
-        datatype: &str,
-        name: impl Into<String>,
-        case: FieldCase,
-    ) -> Result<FieldInfo<S>, S> {
+    pub fn new(datatype: &str, name: impl Into<String>, case: FieldCase) -> Result<FieldInfo<S>> {
         Self::evaluate(datatype.try_into()?, name.into(), case)
     }
 
-    fn evaluate(datatype: DataType, name: String, case: FieldCase) -> Result<FieldInfo<S>, S> {
+    fn evaluate(datatype: DataType, name: String, case: FieldCase) -> Result<FieldInfo<S>> {
         fn parse_datatype_const<S: BuildHasher + Default + Clone + core::fmt::Debug>(
             dtype: &DataType,
             raw_value: &str,
@@ -284,7 +288,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
         &self,
         package: &str,
         hashes: &HashMap<MessagePath, String, S>,
-    ) -> Result<String, S> {
+    ) -> Result<String> {
         let datatype = self.datatype.md5_str(package, hashes)?;
         Ok(match (self.datatype.is_builtin(), &self.case) {
             (_, FieldCase::Const(v)) => format!("{} {}={}", datatype, self.name, v),
@@ -330,6 +334,24 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
             _ => false,
         }
     }
+
+    pub(crate) fn to_random_state(self) -> FieldInfo<RandomState> {
+        let Self {
+            datatype,
+            name,
+            case,
+            const_value,
+            default_value,
+        } = self;
+
+        FieldInfo {
+            datatype,
+            name,
+            case,
+            const_value: const_value.to_random_state(),
+            default_value: default_value.to_random_state(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -340,9 +362,9 @@ struct FieldInfoSerde {
 }
 
 impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<FieldInfoSerde> for FieldInfo<S> {
-    type Error = Error<S>;
+    type Error = Error;
 
-    fn try_from(src: FieldInfoSerde) -> Result<Self, S> {
+    fn try_from(src: FieldInfoSerde) -> Result<Self> {
         Self::evaluate(src.datatype, src.name, src.case)
     }
 }

@@ -10,7 +10,6 @@ use std::hash::{BuildHasher, RandomState};
 use std::io::{self, Read};
 
 pub(crate) type MessageValues<S> = Vec<Value<S>>;
-type MyMap<K, V> = HashMap<K, V>;
 
 // Most of this code is copied from
 // https://github.com/adnanademovic/rosrust/blob/master/rosrust/src/dynamic_msg.rs
@@ -18,7 +17,7 @@ type MyMap<K, V> = HashMap<K, V>;
 /// A dynamic Message provides a decoder for ROS2 messages at runtime without
 /// the need to compile a message decoder during compilation. See [Self::new()] for more.
 #[derive(Clone, Debug)]
-pub struct DynamicMsg<S: BuildHasher + Default + Clone + core::fmt::Debug> {
+pub struct DynamicMsg<S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState> {
     // = RandomState> {
     msg: Msg<S>,
     dependencies: HashMap<MessagePath, Msg<S>, S>,
@@ -49,7 +48,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// let dynamic_message = DynamicMsg<S>::new("package/msg/SmallMsg<S>", msg_definition);
     /// assert!(dynamic_message.is_ok());
     /// ```
-    pub fn new(message_name: &str, message_definition: &str) -> Result<Self, S> {
+    pub fn new(message_name: &str, message_definition: &str) -> Result<Self> {
         lazy_static! {
             static ref RE_DESCRIPTOR_MESSAGES_SPLITTER: regex::Regex = RegexBuilder::new("^=+$")
                 .multi_line(true)
@@ -83,13 +82,13 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         self.dependencies.get(path)
     }
 
-    fn parse_msg(message_path: &str, message_src: &str) -> Result<Msg<S>, S> {
+    fn parse_msg(message_path: &str, message_src: &str) -> Result<Msg<S>> {
         let message_path = message_path.try_into()?;
         let msg = Msg::new(message_path, message_src)?;
         Ok(msg)
     }
 
-    fn parse_dependency(message_body: &str) -> Result<Msg<S>, S> {
+    fn parse_dependency(message_body: &str) -> Result<Msg<S>> {
         lazy_static! {
             static ref RE_DESCRIPTOR_MSG_TYPE: regex::Regex =
                 regex::Regex::new(r#"^\s*MSG:\s*(\S+)\s*$"#).unwrap();
@@ -115,7 +114,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         Self::parse_msg(message_type.as_str(), message_src)
     }
 
-    fn get_dependency(&self, path: &MessagePath) -> Result<&Msg<S>, S> {
+    fn get_dependency(&self, path: &MessagePath) -> Result<&Msg<S>> {
         self.dependencies
             .get(path)
             .ok_or(Error::MessageDependencyMissing {
@@ -156,14 +155,14 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// // Reading the value field of the message
     /// assert_eq!(message["value"], ros2_message::Value::F32(core::f32::consts::PI));
     /// ```
-    pub fn decode<R: Read>(&self, r: R) -> Result<HashMap<String, Value<S>, S>, S> {
+    pub fn decode<R: Read>(&self, r: R) -> Result<HashMap<String, Value<S>, S>> {
         let values = self.decode_message(self.msg(), r)?;
 
         self.map_values(values)
     }
 
     /// This maps the result of [Self::decode_unmapped()] to the result of [Self::decode()]
-    pub fn map_values(&self, mut values: Vec<Value<S>>) -> Result<HashMap<String, Value<S>, S>, S> {
+    pub fn map_values(&self, mut values: Vec<Value<S>>) -> Result<HashMap<String, Value<S>, S>> {
         self.map_field_names(self.msg(), &mut values)
     }
 
@@ -173,7 +172,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         &self,
         msg: &Msg<S>,
         values: &mut Vec<Value<S>>,
-    ) -> Result<HashMap<String, Value<S>, S>, S> {
+    ) -> Result<HashMap<String, Value<S>, S>> {
         let mut map = HashMap::with_capacity_and_hasher(msg.fields().len(), Default::default());
         for field_info in msg.fields().iter() {
             let field_name = field_info.name().to_owned();
@@ -188,8 +187,8 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                         _ => {
                             return Err(Error::DecodingError {
                                 err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
-                                field: field_info.clone(),
-                                msg: msg.clone(),
+                                field: field_info.clone().to_random_state(),
+                                msg: msg.clone().to_random_state(),
                                 offset: 0,
                             })
                         }
@@ -203,8 +202,8 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                         Value::Array(arr) => arr,
                         _ => return Err(Error::DecodingError {
                                 err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
-                                field: field_info.clone(),
-                                msg: msg.clone(),
+                                field: field_info.clone().to_random_state(),
+                                msg: msg.clone().to_random_state(),
                                 offset: 0,
                             }),
                     };
@@ -249,12 +248,12 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// // Reading the second field of the message
     /// assert_eq!(message[1], ros2_message::Value::F32(core::f32::consts::PI));
     /// ```
-    pub fn decode_unmapped<R: Read>(&self, r: R) -> Result<MessageValues<S>, S> {
+    pub fn decode_unmapped<R: Read>(&self, r: R) -> Result<MessageValues<S>> {
         self.decode_message(self.msg(), r)
     }
 
     // This is necessary to prevent the creation of nested ByteCounters
-    fn decode_message<R: Read>(&self, msg: &Msg<S>, r: R) -> Result<MessageValues<S>, S> {
+    fn decode_message<R: Read>(&self, msg: &Msg<S>, r: R) -> Result<MessageValues<S>> {
         let mut r = ByteCounter::new(r);
 
         let mut buf = [0, 0, 0, 0];
@@ -264,7 +263,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         // let kind = buf[1];
         if buf != [0, 0x01, 0, 0] {
             return Err(Error::DecodingError {
-                msg: msg.clone(),
+                msg: msg.clone().to_random_state(),
                 field: FieldInfo::new("uint8", "error_placeholder_field", crate::FieldCase::Unit)
                     .unwrap(),
                 offset: r.bytes_read(),
@@ -303,7 +302,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         &self,
         msg: &Msg<S>,
         r: &mut ByteCounter<R>,
-    ) -> Result<MessageValues<S>, S> {
+    ) -> Result<MessageValues<S>> {
         let mut values = Vec::with_capacity(msg.fields().len());
         for field in msg.fields() {
             let val = match field.case() {
@@ -321,8 +320,8 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                     offset: _,
                     err,
                 } => Error::DecodingError {
-                    msg: msg.clone(),
-                    field: field.clone(),
+                    msg: msg.clone().to_random_state(),
+                    field: field.clone().to_random_state(),
                     offset: r.bytes_read(),
                     err,
                 },
@@ -339,7 +338,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         parent: &MessagePath,
         field: &FieldInfo<S>,
         r: &mut ByteCounter<R>,
-    ) -> Result<Value<S>, S> {
+    ) -> Result<Value<S>> {
         /*
         let field_type = field.datatype().to_string();
         let prev_read = r.bytes_read();
@@ -402,8 +401,8 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                     Err(e) => {
                         return Err(Error::DecodingError {
                             err: std::io::Error::other(e),
-                            field: field.clone(),
-                            msg: self.msg.clone(),
+                            field: field.clone().to_random_state(),
+                            msg: self.msg.clone().to_random_state(),
                             offset: r.bytes_read(),
                         })
                     }
@@ -452,7 +451,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         field: &FieldInfo<S>,
         array_length: Option<usize>,
         r: &mut ByteCounter<R>,
-    ) -> Result<Value<S>, S> {
+    ) -> Result<Value<S>> {
         let array_length = match array_length {
             Some(v) => v,
             None => r.read_u32::<LE>()? as usize,

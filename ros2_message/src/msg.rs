@@ -12,7 +12,7 @@ use std::hash::{BuildHasher, RandomState};
 #[derive_where(Clone, PartialEq, Eq, Hash)]
 #[serde(into = "MsgSerde")]
 #[serde(try_from = "MsgSerde")]
-pub struct Msg<S: BuildHasher + Default + Clone + core::fmt::Debug> {
+pub struct Msg<S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState> {
     path: MessagePath,
     fields: Vec<FieldInfo<S>>,
     source: String,
@@ -55,7 +55,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(path: MessagePath, source: &str) -> Result<Msg<S>, S> {
+    pub fn new(path: MessagePath, source: &str) -> Result<Msg<S>> {
         let source = source.trim().to_owned();
         let fields = match_lines(&source)?;
         Ok(Msg {
@@ -180,7 +180,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     ///
     /// An error is returned if some dependency is missing in the hashes.
     #[cfg(test)]
-    pub fn calculate_md5(&self, hashes: &HashMap<MessagePath, String>) -> Result<String, S> {
+    pub fn calculate_md5(&self, hashes: &HashMap<MessagePath, String>) -> Result<String> {
         use md5::{Digest, Md5};
 
         let mut hasher = Md5::new();
@@ -239,19 +239,19 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     pub fn get_md5_representation(
         &self,
         hashes: &HashMap<MessagePath, String, S>,
-    ) -> Result<String, S> {
+    ) -> Result<String> {
         let constants = self
             .fields
             .iter()
             .filter(|v| v.is_constant())
             .map(|v| v.md5_string(self.path.package(), hashes))
-            .collect::<Result<Vec<String>, S>>()?;
+            .collect::<Result<Vec<String>>>()?;
         let fields = self
             .fields
             .iter()
             .filter(|v| !v.is_constant())
             .map(|v| v.md5_string(self.path.package(), hashes))
-            .collect::<Result<Vec<String>, S>>()?;
+            .collect::<Result<Vec<String>>>()?;
         let representation = constants
             .into_iter()
             .chain(fields)
@@ -268,6 +268,20 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     pub fn has_header(&self) -> bool {
         self.fields.iter().any(FieldInfo::is_header)
     }
+
+    pub(crate) fn to_random_state(self) -> Msg<RandomState> {
+        let Self {
+            path,
+            fields,
+            source,
+        } = self;
+
+        Msg {
+            path,
+            fields: fields.into_iter().map(FieldInfo::to_random_state).collect(),
+            source,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -277,9 +291,9 @@ struct MsgSerde {
 }
 
 impl<S: BuildHasher + Default + Clone + core::fmt::Debug> TryFrom<MsgSerde> for Msg<S> {
-    type Error = Error<S>;
+    type Error = Error;
 
-    fn try_from(src: MsgSerde) -> Result<Self, S> {
+    fn try_from(src: MsgSerde) -> Result<Self> {
         Self::new(src.path, &src.source)
     }
 }

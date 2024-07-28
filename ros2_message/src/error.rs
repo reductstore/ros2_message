@@ -1,13 +1,10 @@
-use std::{
-    backtrace::Backtrace,
-    hash::{BuildHasher, RandomState},
-};
+use std::{backtrace::Backtrace, hash::RandomState};
 
-use crate::{value, FieldInfo, MessagePath, Msg};
+use crate::{FieldInfo, MessagePath, Msg};
 
 /// Enumeration of all errors that can be returned.
 #[derive(thiserror::Error, Debug)]
-pub enum Error<S: BuildHasher + Default + Clone + core::fmt::Debug> {
+pub enum Error {
     /// Message doesn't have a valid format.
     ///
     /// Message names must follow the `package_name/MessageName` format.
@@ -59,9 +56,9 @@ pub enum Error<S: BuildHasher + Default + Clone + core::fmt::Debug> {
     #[error("failed to decode field:\n\n\"{field}\"\n\nGot `{err}` at byte {offset}\n\n{msg}")]
     DecodingError {
         /// The associated message definition that was used to decode the data
-        msg: Msg<S>,
+        msg: Msg<RandomState>,
         /// The field that the decoder failed at
-        field: FieldInfo<S>,
+        field: FieldInfo<RandomState>,
         /// The byte offset the deocder failed at
         offset: usize,
         /// The underlying io error
@@ -69,14 +66,14 @@ pub enum Error<S: BuildHasher + Default + Clone + core::fmt::Debug> {
     },
 }
 
-impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<std::io::Error> for Error<S> {
+impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
         let trace = Backtrace::force_capture();
         // TODO!: this probably isn't wanted behaviour but left in for debugging purposes for now
         eprintln!("{}", trace);
 
         let default_msg = Msg::new(
-            MessagePath::new::<S>("placeholder", "PlaceholderMessage").unwrap(),
+            MessagePath::new("placeholder", "PlaceholderMessage").unwrap(),
             "",
         )
         .unwrap();
@@ -93,12 +90,12 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<std::io::Error> f
 }
 
 /*
-impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<Error<S>> for &Error<RandomState>
+impl<S: BuildHasher + Default + Clone + core::fmt::Debug> From<Error> for &Error
 where
     Msg<RandomState>: From<Msg<S>>,
     FieldInfo<RandomState>: From<FieldInfo<S>>,
 {
-    fn from(value: Error<S>) -> Self {
+    fn from(value: Error) -> Self {
         use Error::*;
 
         &match value {
@@ -135,5 +132,4 @@ where
 
 /// Convenience type for shorter return value syntax of this crate's errors.
 /// = RandomState
-pub type Result<T, S: BuildHasher + Default + Clone + core::fmt::Debug> =
-    std::result::Result<T, Error<S>>;
+pub type Result<T> = std::result::Result<T, Error>;
