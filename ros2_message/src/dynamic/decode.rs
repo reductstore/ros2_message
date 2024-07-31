@@ -33,7 +33,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// # Examples
     ///
     /// ```
-    /// use ros2_message::dynamic::DynamicMsg<S>;
+    /// use ros2_message::dynamic::DynamicMsg;
     ///
     /// let msg_definition = r#"
     /// builtin_interfaces/Time stamp
@@ -45,7 +45,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// int32 sec
     /// uint32 nanosec
     /// "#;
-    /// let dynamic_message = DynamicMsg<S>::new("package/msg/SmallMsg<S>", msg_definition);
+    /// let dynamic_message = DynamicMsg::<std::hash::RandomState>::new("package/msg/SmallMsg<S>", msg_definition);
     /// assert!(dynamic_message.is_ok());
     /// ```
     pub fn new(message_name: &str, message_definition: &str) -> Result<Self> {
@@ -115,12 +115,14 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     }
 
     fn get_dependency(&self, path: &MessagePath) -> Result<&Msg<S>> {
-        self.dependencies
-            .get(path)
-            .ok_or(Error::MessageDependencyMissing {
+        let Some(msg) = self.dependencies.get(path) else {
+            return Err(Error::MessageDependencyMissing {
                 package: path.package().to_owned(),
                 name: path.name().to_owned(),
-            })
+            });
+        };
+
+        Ok(msg)
     }
 
     /// This will read the provided reader to its end and return a map with all field names mapped to their values.
@@ -134,7 +136,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// # Examples
     ///
     /// ```
-    /// use ros2_message::dynamic::DynamicMsg<S>;
+    /// use ros2_message::dynamic::DynamicMsg;
     ///
     /// let msg_definition = r#"
     /// builtin_interfaces/Time stamp
@@ -147,7 +149,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// uint32 nanosec
     /// "#;
     ///
-    /// let dynamic_message = DynamicMsg<S>::new("package/msg/SmallMsg<S>", msg_definition)
+    /// let dynamic_message = DynamicMsg::<std::hash::RandomState>::new("package/msg/SmallMsg<S>", msg_definition)
     ///     .expect("The message definition was invalid");
     /// let message = dynamic_message.decode(&[0x00u8, 0x01, 0, 0, 157, 47, 136, 102, 42, 0, 0 ,0, 219, 15, 73, 64][..])
     ///     .expect("The supplied bytes do not match the message definition");
@@ -225,7 +227,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// # Examples
     ///
     /// ```
-    /// use ros2_message::dynamic::DynamicMsg<S>;
+    /// use ros2_message::dynamic::DynamicMsg;
     ///
     /// let msg_definition = r#"
     /// builtin_interfaces/Time stamp
@@ -238,7 +240,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// uint32 nanosec
     /// "#;
     ///
-    /// let dynamic_message = DynamicMsg<S>::new("package/msg/SmallMsg<S>", msg_definition).expect("The message definition was invalid");
+    /// let dynamic_message = DynamicMsg::<std::hash::RandomState>::new("package/msg/SmallMsg<S>", msg_definition).expect("The message definition was invalid");
     /// let message = dynamic_message.decode_unmapped(&[0x00u8, 0x01, 0, 0, 157, 47, 136, 102, 42, 0, 0 ,0, 219, 15, 73, 64][..])
     ///     .expect("The supplied bytes do not match the message definition");
     ///
@@ -302,28 +304,30 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     ) -> Result<MessageValues<S>> {
         let mut values = MessageValues::with_capacity(msg.fields().len());
         for field in msg.fields() {
-            let val = match field.case() {
+            let res = match field.case() {
                 FieldCase::Const(_) => Ok(field.const_value().unwrap().clone()),
                 FieldCase::Unit | FieldCase::Default(_) => self.decode_field(msg.path(), field, r),
                 //.expect("Error while decoding unit field"),
                 FieldCase::Vector => self.decode_field_array(msg.path(), field, None, r),
                 //.expect("Error while decoding vector field"),
                 FieldCase::Array(l) => self.decode_field_array(msg.path(), field, Some(*l), r), //.expect("Error while decoding array field"),
-            }
-            .map_err(|e| match e {
-                Error::DecodingError {
-                    msg: _,
-                    field: _,
-                    offset: _,
-                    err,
-                } => Error::DecodingError {
-                    msg: msg.clone().to_random_state(),
-                    field: field.clone().to_random_state(),
-                    offset: r.bytes_read(),
-                    err,
-                },
-                e => e,
-            })?;
+            };
+
+            let val = match res {
+                Ok(v) => v,
+                Err(e) => {
+                    return Err(match e {
+                        Error::DecodingError { err, .. } => Error::DecodingError {
+                            msg: msg.clone().to_random_state(),
+                            field: field.clone().to_random_state(),
+                            offset: r.bytes_read(),
+                            err,
+                        },
+                        e => e,
+                    })
+                }
+            };
+
             values.push_back(val);
         }
 
