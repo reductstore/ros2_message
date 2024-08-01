@@ -1,3 +1,5 @@
+use std::hash::RandomState;
+
 use crate::dynamic::DynamicMsg;
 use crate::Value;
 
@@ -14,8 +16,9 @@ int32 sec
 uint32 nanosec
             "#;
 
-    let dynamic_message = DynamicMsg::new("package/msg/SmallMsg", msg_definition)
-        .expect("The message definition was invalid");
+    let dynamic_message: DynamicMsg<RandomState> =
+        DynamicMsg::new("package/msg/SmallMsg", msg_definition)
+            .expect("The message definition was invalid");
     let message = dynamic_message
         .decode(
             &[

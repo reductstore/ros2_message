@@ -1,4 +1,4 @@
-use std::hash::BuildHasher;
+use std::hash::{BuildHasher, RandomState};
 
 use crate::{Error, FieldCase, FieldInfo, Result};
 use lazy_static::lazy_static;

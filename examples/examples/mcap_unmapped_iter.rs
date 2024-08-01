@@ -1,3 +1,5 @@
+use std::hash::RandomState;
+
 use ros2_message::dynamic::UnmappedMcapMessageStream;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -5,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = args.get(1).expect("Provide a path to an .mcap file");
 
     let data = std::fs::read(path)?;
-    let (stream, schemas) = UnmappedMcapMessageStream::new(&data)?;
+    let (stream, schemas) = UnmappedMcapMessageStream::<RandomState>::new(&data)?;
 
     for raw_message in stream {
         let (unmapped, raw) = raw_message?;
@@ -16,8 +18,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             continue; // Skip channels with unknown schematas
         };
 
-        let decoded_msg = dynamic_msg.map_values(unmapped)?;
-        println!("{} {:#?}", dynamic_msg.msg().path().name(), decoded_msg);
+        // let decoded_msg = dynamic_msg.map_values(unmapped)?;
+        // println!("{} {:#?}", dynamic_msg.msg().path().name(), decoded_msg);
     }
 
     Ok(())

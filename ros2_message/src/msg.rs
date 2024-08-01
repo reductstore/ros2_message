@@ -14,6 +14,7 @@ use std::hash::{BuildHasher, RandomState};
 #[serde(try_from = "MsgSerde")]
 pub struct Msg<S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState> {
     path: MessagePath,
+    #[serde(bound(deserialize = "", serialize = ""))]
     fields: Vec<FieldInfo<S>>,
     source: String,
 }
@@ -180,7 +181,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     ///
     /// An error is returned if some dependency is missing in the hashes.
     #[cfg(test)]
-    pub fn calculate_md5(&self, hashes: &HashMap<MessagePath, String>) -> Result<String> {
+    pub fn calculate_md5(&self, hashes: &HashMap<MessagePath, String, S>) -> Result<String> {
         use md5::{Digest, Md5};
 
         let mut hasher = Md5::new();

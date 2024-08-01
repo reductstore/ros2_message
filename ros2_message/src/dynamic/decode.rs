@@ -180,6 +180,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
             let field_name = field_info.name().to_owned();
 
             // println!("{} - {:?}", &field_name, values);
+            // !TODO: Error handling
             let value = values.pop_front().expect("what");
 
             let field_value = match field_info.datatype() {

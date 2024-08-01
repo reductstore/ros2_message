@@ -52,8 +52,10 @@ pub enum Value<S: BuildHasher + Default + Clone + core::fmt::Debug = RandomState
     /// Represents `some_type[]` or `some_type[length]`.
     ///
     /// For example: `float32[64]`, `geometry_msgs/Point[]`.
+    #[serde(bound(deserialize = "", serialize = ""))]
     Array(Vec<Value<S>>),
     /// Represents an embedded message.
+    #[serde(bound(deserialize = "", serialize = ""))]
     Message(HashMap<String, Value<S>, S>),
 }
 
@@ -696,11 +698,14 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug, T: TryFrom<Value<S>>> 
 
     fn try_from(value: Value<S>) -> Result<Self, Self::Error> {
         let value = value.try_into_vec().ok_or(())?;
-        value
+        match value
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Self, _>>()
-            .map_err(|_| ())
+        {
+            Ok(v) => Ok(v),
+            Err(_) => Err(()),
+        }
     }
 }
 

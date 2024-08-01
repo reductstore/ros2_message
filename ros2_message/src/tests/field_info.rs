@@ -1,5 +1,5 @@
 use crate::{FieldCase, FieldInfo, MessagePath, Value};
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::RandomState};
 
 #[test]
 fn md5_string_is_correct() {
@@ -13,49 +13,49 @@ fn md5_string_is_correct() {
         "EFGH".to_owned(),
     );
     assert_eq!(
-        FieldInfo::new("int64", "abc", FieldCase::Unit)
+        FieldInfo::<RandomState>::new("int64", "abc", FieldCase::Unit)
             .unwrap()
             .md5_string("", &hashes)
             .unwrap(),
         "int64 abc".to_owned()
     );
     assert_eq!(
-        FieldInfo::new("float32", "abc", FieldCase::Array(3))
+        FieldInfo::<RandomState>::new("float32", "abc", FieldCase::Array(3))
             .unwrap()
             .md5_string("", &hashes)
             .unwrap(),
         "float32[3] abc".to_owned()
     );
     assert_eq!(
-        FieldInfo::new("int32", "abc", FieldCase::Vector)
+        FieldInfo::<RandomState>::new("int32", "abc", FieldCase::Vector)
             .unwrap()
             .md5_string("", &hashes)
             .unwrap(),
         "int32[] abc".to_owned()
     );
     assert_eq!(
-        FieldInfo::new("string", "abc", FieldCase::Const("something".into()))
+        FieldInfo::<RandomState>::new("string", "abc", FieldCase::Const("something".into()))
             .unwrap()
             .md5_string("", &hashes)
             .unwrap(),
         "string abc=something".to_owned()
     );
     assert_eq!(
-        FieldInfo::new("xx", "abc", FieldCase::Vector)
+        FieldInfo::<RandomState>::new("xx", "abc", FieldCase::Vector)
             .unwrap()
             .md5_string("p1", &hashes)
             .unwrap(),
         "ABCD abc".to_owned()
     );
     assert_eq!(
-        FieldInfo::new("xx", "abc", FieldCase::Array(3))
+        FieldInfo::<RandomState>::new("xx", "abc", FieldCase::Array(3))
             .unwrap()
             .md5_string("p1", &hashes)
             .unwrap(),
         "ABCD abc".to_owned()
     );
     assert_eq!(
-        FieldInfo::new("p2/xx", "abc", FieldCase::Unit)
+        FieldInfo::<RandomState>::new("p2/xx", "abc", FieldCase::Unit)
             .unwrap()
             .md5_string("p1", &hashes)
             .unwrap(),
@@ -68,49 +68,50 @@ fn display() {
     assert_eq!(
         format!(
             "{}",
-            FieldInfo::new("int64", "abc", FieldCase::Unit).unwrap()
+            FieldInfo::<RandomState>::new("int64", "abc", FieldCase::Unit).unwrap()
         ),
         "int64 abc".to_owned()
     );
     assert_eq!(
         format!(
             "{}",
-            FieldInfo::new("float32", "abc", FieldCase::Array(3)).unwrap()
+            FieldInfo::<RandomState>::new("float32", "abc", FieldCase::Array(3)).unwrap()
         ),
         "float32[3] abc".to_owned()
     );
     assert_eq!(
         format!(
             "{}",
-            FieldInfo::new("int32", "abc", FieldCase::Vector).unwrap()
+            FieldInfo::<RandomState>::new("int32", "abc", FieldCase::Vector).unwrap()
         ),
         "int32[] abc".to_owned()
     );
     assert_eq!(
         format!(
             "{}",
-            FieldInfo::new("string", "abc", FieldCase::Const("something".into())).unwrap()
+            FieldInfo::<RandomState>::new("string", "abc", FieldCase::Const("something".into()))
+                .unwrap()
         ),
         "string abc=something".to_owned()
     );
     assert_eq!(
         format!(
             "{}",
-            FieldInfo::new("xx", "abc", FieldCase::Vector).unwrap()
+            FieldInfo::<RandomState>::new("xx", "abc", FieldCase::Vector).unwrap()
         ),
         "xx[] abc".to_owned()
     );
     assert_eq!(
         format!(
             "{}",
-            FieldInfo::new("xx", "abc", FieldCase::Array(3)).unwrap()
+            FieldInfo::<RandomState>::new("xx", "abc", FieldCase::Array(3)).unwrap()
         ),
         "xx[3] abc".to_owned()
     );
     assert_eq!(
         format!(
             "{}",
-            FieldInfo::new("p2/xx", "abc", FieldCase::Unit).unwrap()
+            FieldInfo::<RandomState>::new("p2/xx", "abc", FieldCase::Unit).unwrap()
         ),
         "p2/xx abc".to_owned()
     );
@@ -183,8 +184,10 @@ fn deserialize_const_field_case_from_structure_with_value_string() {
 #[test]
 fn serialize_field_info_as_correct_structure() {
     assert_eq!(
-        serde_json::to_value(FieldInfo::new("p2/xx", "abc", FieldCase::Array(12)).unwrap())
-            .unwrap(),
+        serde_json::to_value(
+            FieldInfo::<RandomState>::new("p2/xx", "abc", FieldCase::Array(12)).unwrap()
+        )
+        .unwrap(),
         serde_json::from_str::<serde_json::Value>(
             r#"
             {
@@ -198,7 +201,7 @@ fn serialize_field_info_as_correct_structure() {
     );
     assert_eq!(
         serde_json::to_value(
-            FieldInfo::new("int16", "abc", FieldCase::Const("33".into())).unwrap()
+            FieldInfo::<RandomState>::new("int16", "abc", FieldCase::Const("33".into())).unwrap()
         )
         .unwrap(),
         serde_json::from_str::<serde_json::Value>(
@@ -217,7 +220,7 @@ fn serialize_field_info_as_correct_structure() {
 #[test]
 fn deserialize_field_info_from_correct_structure() {
     assert_eq!(
-        serde_json::from_str::<FieldInfo>(
+        serde_json::from_str::<FieldInfo<RandomState>>(
             r#"
             {
                 "datatype": "p2/xx",
@@ -230,7 +233,7 @@ fn deserialize_field_info_from_correct_structure() {
         FieldInfo::new("p2/xx", "abc", FieldCase::Array(12)).unwrap(),
     );
     assert_eq!(
-        serde_json::from_str::<FieldInfo>(
+        serde_json::from_str::<FieldInfo<RandomState>>(
             r#"
             {
                 "datatype": "int16",
@@ -247,7 +250,7 @@ fn deserialize_field_info_from_correct_structure() {
 #[test]
 fn deserialize_field_info_ensures_correct_const_value() {
     assert_eq!(
-        serde_json::from_str::<FieldInfo>(
+        serde_json::from_str::<FieldInfo<RandomState>>(
             r#"
             {
                 "datatype": "int16",
@@ -262,7 +265,7 @@ fn deserialize_field_info_ensures_correct_const_value() {
         .clone(),
         Value::I16(33),
     );
-    assert!(serde_json::from_str::<FieldInfo>(
+    assert!(serde_json::from_str::<FieldInfo<RandomState>>(
         r#"
             {
                 "datatype": "int16",

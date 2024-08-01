@@ -66,27 +66,27 @@ fn match_const_numeric_matches_legal_field() {
 
 #[test]
 fn match_line_works_on_legal_data() {
-    assert!(match_line("#just a comment").is_none());
-    assert!(match_line("#  YOLO !   ").is_none());
-    assert!(match_line("      ").is_none());
+    assert!(match_line::<RandomState>("#just a comment").is_none());
+    assert!(match_line::<RandomState>("#  YOLO !   ").is_none());
+    assert!(match_line::<RandomState>("      ").is_none());
 
     assert_eq!(
         FieldInfo::new("geom_msgs/Twist", "myname", FieldCase::Unit).unwrap(),
-        match_line("  geom_msgs/Twist   myname    # this clearly should succeed")
+        match_line::<RandomState>("  geom_msgs/Twist   myname    # this clearly should succeed")
             .unwrap()
             .unwrap()
     );
 
     assert_eq!(
         FieldInfo::new("geom_msgs/Twist", "myname", FieldCase::Vector).unwrap(),
-        match_line("  geom_msgs/Twist [  ]   myname  # ...")
+        match_line::<RandomState>("  geom_msgs/Twist [  ]   myname  # ...")
             .unwrap()
             .unwrap()
     );
 
     assert_eq!(
         FieldInfo::new("char", "myname", FieldCase::Array(127)).unwrap(),
-        match_line("  char   [   127 ]   myname# comment")
+        match_line::<RandomState>("  char   [   127 ]   myname# comment")
             .unwrap()
             .unwrap()
     );
@@ -97,13 +97,13 @@ fn match_line_works_on_legal_data() {
             FieldCase::Const("this is # data".into()),
         )
         .unwrap(),
-        match_line("  string  myname =   this is # data  ")
+        match_line::<RandomState>("  string  myname =   this is # data  ")
             .unwrap()
             .unwrap()
     );
     assert_eq!(
         FieldInfo::new("int16", "myname", FieldCase::Const("-444".into())).unwrap(),
-        match_line("  int16  myname =   -444 # data  ")
+        match_line::<RandomState>("  int16  myname =   -444 # data  ")
             .unwrap()
             .unwrap()
     );
@@ -111,7 +111,7 @@ fn match_line_works_on_legal_data() {
 
 #[test]
 fn match_lines_parses_real_messages() {
-    let data = match_lines(include_str!(
+    let data = match_lines::<RandomState>(include_str!(
         "../../../msg_examples/geometry_msgs/msg/TwistWithCovariance.msg"
     ))
     .unwrap();
@@ -123,7 +123,7 @@ fn match_lines_parses_real_messages() {
         data
     );
 
-    let data = match_lines(include_str!(
+    let data = match_lines::<RandomState>(include_str!(
         "../../../msg_examples/geometry_msgs/msg/PoseStamped.msg"
     ))
     .unwrap();

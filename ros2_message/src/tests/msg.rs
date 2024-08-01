@@ -1,6 +1,7 @@
 use crate::{FieldCase, FieldInfo, MessagePath, Msg, Value};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
+use std::hash::RandomState;
 
 #[test]
 fn md5_string_is_correct() {
@@ -194,13 +195,13 @@ fn constructor_parses_real_message() {
 
 #[test]
 fn has_header_checks_if_there_is_a_header_in_the_message_root() {
-    let without_header = Msg::new(
+    let without_header = Msg::<RandomState>::new(
         "geometry_msgs/TwistWithCovariance".try_into().unwrap(),
         include_str!("../../../msg_examples/geometry_msgs/msg/TwistWithCovariance.msg"),
     )
     .unwrap();
     assert!(!without_header.has_header());
-    let with_header = Msg::new(
+    let with_header = Msg::<RandomState>::new(
         "sensor_msgs/Imu".try_into().unwrap(),
         include_str!("../../../msg_examples/sensor_msgs/msg/Imu.msg"),
     )
@@ -210,7 +211,7 @@ fn has_header_checks_if_there_is_a_header_in_the_message_root() {
 
 #[test]
 fn dependencies_lists_all_fields_the_message_depends_upon() {
-    let msg = Msg::new(
+    let msg = Msg::<RandomState>::new(
         "geometry_msgs/PoseStamped".try_into().unwrap(),
         include_str!("../../../msg_examples/geometry_msgs/msg/PoseStamped.msg"),
     )
@@ -255,7 +256,7 @@ fn constants_returns_a_map_of_all_constants_in_message_root() {
 fn serialize_into_name_and_truncated_source_only() {
     assert_eq!(
         serde_json::to_value(
-            Msg::new(
+            Msg::<RandomState>::new(
                 "geometry_msgs/Quaternion"
                     .try_into()
                     .expect("Unexpectedly bad message body"),

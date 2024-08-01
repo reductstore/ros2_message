@@ -72,7 +72,9 @@ pub struct FieldInfo<S: BuildHasher + Default + Clone + core::fmt::Debug = Rando
     datatype: DataType,
     name: String,
     case: FieldCase,
+    #[serde(bound(deserialize = "", serialize = ""))]
     const_value: Uncompared<Option<Value<S>>>,
+    #[serde(bound(deserialize = "", serialize = ""))]
     default_value: Uncompared<Option<Value<S>>>,
 }
 
@@ -101,7 +103,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
     /// # use ros2_message::{DataType, FieldInfo, FieldCase};
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let field = FieldInfo::new("int16", "foo", FieldCase::Vector)?;
+    /// let field = FieldInfo::<std::hash::RandomState>::new("int16", "foo", FieldCase::Vector)?;
     ///
     /// assert_eq!(field.name(), "foo");
     /// assert_eq!(field.datatype(), &DataType::I16);

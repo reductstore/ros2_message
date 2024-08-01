@@ -14,6 +14,7 @@ debug = true
 
 [dependencies]
 env_logger = "0.9.0"
+# gxhash = "3.4.1"
 mcap = "0.9.1"
 ros2_message = { path = "../ros2_message" }
 serde = "1.0.127"

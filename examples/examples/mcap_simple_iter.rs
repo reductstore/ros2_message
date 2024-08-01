@@ -1,3 +1,5 @@
+use std::hash::RandomState;
+
 use ros2_message::dynamic::McapMessageStream;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -6,11 +8,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let data = std::fs::read(path)?;
 
-    for message in McapMessageStream::new(&data)? {
+    for message in McapMessageStream::<RandomState>::new(&data)? {
         let (msg, raw) = message?;
         let channel_id = raw.header.channel_id as usize;
 
-        println!("Channel {}: {:#?}", channel_id, msg);
+        // println!("Channel {}: {:#?}", channel_id, msg);
     }
 
     Ok(())

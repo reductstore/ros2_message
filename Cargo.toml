@@ -2,6 +2,8 @@
 members = ["ros2_message", "examples"]
 resolver = "2"
 
+[profile.release]
+debug = true
 
 [patch.crates-io]
 "ros2_message" = { path = "ros2_message" }
