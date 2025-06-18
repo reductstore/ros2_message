@@ -23,11 +23,9 @@ pub struct DynamicMsg<S: BuildHasher + Default + Clone + core::fmt::Debug = Rand
     dependencies: HashMap<MessagePath, Msg<S>, S>,
 }
 
-/// Byte alignment for CDR version 1
-const ALIGNMENT: usize = 4;
 
 impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
-    /// Create a new DynamicMsg<S> by parsing it's message definition. For this to work all of
+    /// Create a new `DynamicMsg<S>` by parsing it's message definition. For this to work all of
     /// the messages depencies have to be provided as well, see the example for more.
     ///
     /// # Examples
@@ -307,7 +305,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         for field in msg.fields() {
             let res = match field.case() {
                 FieldCase::Const(_) => Ok(field.const_value().unwrap().clone()),
-                FieldCase::Unit | FieldCase::Default(_) => self.decode_field(msg.path(), field, r),
+                FieldCase::Unit | FieldCase::Default(_) => self.decode_field(msg.path(), field, r, true),
                 //.expect("Error while decoding unit field"),
                 FieldCase::Vector => self.decode_field_array(msg.path(), field, None, r),
                 //.expect("Error while decoding vector field"),
@@ -340,6 +338,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         parent: &MessagePath,
         field: &FieldInfo<S>,
         r: &mut ByteCounter<R>,
+        align: bool,
     ) -> Result<Value<S>> {
         /*
         let field_type = field.datatype().to_string();
@@ -347,40 +346,55 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         println!(" {} > at {:X}", field_type, prev_read);
         */
 
+        let alignment = if align {
+            match field.datatype() {
+                DataType::Bool | DataType::I8(_) | DataType::U8(_) => 1,
+                DataType::I16 | DataType::U16 => 2,
+                DataType::I32 | DataType::U32 | DataType::F32 | DataType::Time => 4,
+                DataType::I64 | DataType::U64 | DataType::F64 => 8,
+                _ => 4, // Default alignment for strings and messages
+            }
+        } else {
+            0
+        };
+
         let value = match field.datatype() {
+
+
+
             DataType::Bool => r.read_u8().map(|i| i != 0)?.into(),
             DataType::I8(_) => r.read_i8()?.into(),
             DataType::I16 => {
-                r.align_to(2)?;
+                r.align_to(alignment)?;
                 r.read_i16::<LE>()?.into()
             }
             DataType::I32 => {
-                r.align_to(4)?;
+                r.align_to(alignment)?;
                 r.read_i32::<LE>()?.into()
             }
             DataType::I64 => {
-                r.align_to(ALIGNMENT)?;
+                r.align_to(alignment)?;
                 r.read_i64::<LE>()?.into()
             }
             DataType::U8(_) => r.read_u8()?.into(),
             DataType::U16 => {
-                r.align_to(2)?;
+                r.align_to(alignment)?;
                 r.read_u16::<LE>()?.into()
             }
             DataType::U32 => {
-                r.align_to(4)?;
+                r.align_to(alignment)?;
                 r.read_u32::<LE>()?.into()
             }
             DataType::U64 => {
-                r.align_to(ALIGNMENT)?;
+                r.align_to(alignment)?;
                 r.read_u64::<LE>()?.into()
             }
             DataType::F32 => {
-                r.align_to(4)?;
+                r.align_to(alignment)?;
                 r.read_f32::<LE>()?.into()
             }
             DataType::F64 => {
-                r.align_to(ALIGNMENT)?;
+                r.align_to(alignment)?;
                 r.read_f64::<LE>()?.into()
             }
             DataType::String => {
@@ -458,13 +472,16 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     ) -> Result<Value<S>> {
         let array_length = match array_length {
             Some(v) => v,
-            None => r.read_u32::<LE>()? as usize,
+            None => {
+                r.align_to(4)?;
+                r.read_u32::<LE>()? as usize
+            },
         };
         // TODO: optimize by checking data type only once
 
         let mut values = Vec::with_capacity(array_length);
         for _ in 0..array_length {
-            values.push(self.decode_field(parent, field, r)?);
+            values.push(self.decode_field(parent, field, r, false)?);
         }
 
         Ok(Value::Array(values))
@@ -496,7 +513,11 @@ where
 
     /// Read the necessary amount of bytes so that the next read will be aligned to `size` bytes
     fn align_to(&mut self, size: usize) -> io::Result<()> {
-        let cur_pos = self.bytes_read();
+        if size == 0 {
+            return Ok(()); // No alignment needed
+        }
+
+        let cur_pos = self.bytes_read() -4 ;
         let cur_align = cur_pos % size;
 
         if cur_align > 0 {
