@@ -176,9 +176,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         let mut map = HashMap::with_capacity_and_hasher(msg.fields().len(), Default::default());
         for field_info in msg.fields().iter() {
             let field_name = field_info.name().to_owned();
-
-            // println!("{} - {:?}", &field_name, values);
-            // !TODO: Error handling
+            
             let value = values.pop_front().ok_or(Error::DecodingError {
                 err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
                 field: field_info.clone().to_random_state(),
