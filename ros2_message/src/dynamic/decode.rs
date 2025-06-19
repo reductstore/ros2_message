@@ -179,7 +179,12 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
 
             // println!("{} - {:?}", &field_name, values);
             // !TODO: Error handling
-            let value = values.pop_front().expect("what");
+            let value = values.pop_front().ok_or(Error::DecodingError {
+                err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
+                field: field_info.clone().to_random_state(),
+                msg: msg.clone().to_random_state(),
+                offset: 0,
+            })?;
 
             let field_value = match field_info.datatype() {
                 DataType::GlobalMessage(path) => {
