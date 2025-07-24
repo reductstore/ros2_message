@@ -12,8 +12,8 @@ It's primary focus is dynamically parsing and decoding ROS2 messages. The most c
 For more information take a look at the [`Msg`](https://docs.rs/ros2_message/latest/ros2_message/struct.Msg.html) and
 [`DynamicMsg`](https://docs.rs/ros2_message/latest/ros2_message/dynamic/decode/struct.DynamicMsg.html) structs.
 
-The most common use case for this is reading out MCAP files, especially in a environment where installing ROS2 is not an option.
-For more information about that have a look at the the [mcap_reading](https://github.com/A-K-O-R-A/ros2_message/blob/master/examples/examples/mcap_reading.rs) example
+The most common use case for this is reading out MCAP files, especially in an environment where installing ROS2 is not an option.
+For more information about that have a look at the [mcap_reading](https://github.com/A-K-O-R-A/ros2_message/blob/master/examples/examples/mcap_reading.rs) example
 in the [examples](https://github.com/A-K-O-R-A/ros2_message/blob/master/examples/examples/) folder.
 
 

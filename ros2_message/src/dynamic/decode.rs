@@ -176,7 +176,22 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         let mut map = HashMap::with_capacity_and_hasher(msg.fields().len(), Default::default());
         for field_info in msg.fields().iter() {
             let field_name = field_info.name().to_owned();
-            
+
+
+
+            let unnest_values = |value, msg: &Msg<_>| {
+                let Value::Array(nested_values) = value else {
+                    return Err(Error::DecodingError {
+                        err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
+                        field: field_info.clone().to_random_state(),
+                        msg: msg.clone().to_random_state(),
+                        offset: 0,
+                    });
+                };
+
+                Ok(nested_values)
+            };
+
             let value = values.pop_front().ok_or(Error::DecodingError {
                 err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
                 field: field_info.clone().to_random_state(),
@@ -184,37 +199,40 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                 offset: 0,
             })?;
 
-            let field_value = match field_info.datatype() {
-                DataType::GlobalMessage(path) => {
-                    let msg = self.get_dependency(&path)?;
-                    let Value::Array(nested_values) = value else {
-                        return Err(Error::DecodingError {
-                                err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
-                                field: field_info.clone().to_random_state(),
-                                msg: msg.clone().to_random_state(),
-                                offset: 0,
-                            });
-                    };
 
-                    Value::Message(self.map_field_names(msg, &mut VecDeque::from(nested_values))?)
-                }
-                DataType::LocalMessage(name) => {
-                    let msg = self.get_dependency(&msg.path().peer(name))?;
-                    let Value::Array(nested_values) = value else {
-                        return Err(Error::DecodingError {
-                                err: std::io::Error::other("Decoded message does not match the structure in the definition, please report this issue"),
-                                field: field_info.clone().to_random_state(),
-                                msg: msg.clone().to_random_state(),
-                                offset: 0,
-                            });
-                    };
 
-                    Value::Message(self.map_field_names(msg, &mut VecDeque::from(nested_values))?)
-                }
-                _ => value,
+            let msg = match field_info.datatype() {
+                DataType::GlobalMessage(path) => Some(self.get_dependency(&path)?),
+
+                DataType::LocalMessage(name) => Some(self.get_dependency(&msg.path().peer(name))?),
+                _ => None,
             };
 
-            map.insert(field_name, field_value);
+
+            let value = if let Some(msg) = msg {
+                let nested_values = unnest_values(value, msg)?;
+                match field_info.case() {
+                    FieldCase::Array(_) | FieldCase::Vector => {
+                        // we need to handle nested arrays and vectors
+                        // fix TF encoding
+                        let mut mapped_msgs = vec![];
+                        for nested_value in nested_values.into_iter() {
+                            let second_level_unnested = unnest_values(nested_value, msg)?;
+                            let msg= Value::Message(self.map_field_names(msg, &mut VecDeque::from(second_level_unnested))?);
+                            mapped_msgs.push(msg);
+                        }
+                        Value::Array(mapped_msgs)
+                    }
+                    _ => {
+
+                        Value::Message(self.map_field_names(msg, &mut VecDeque::from(nested_values))?)
+                    }
+                }
+            } else {
+                value
+            };
+
+            map.insert(field_name, value);
         }
 
         Ok(map)
@@ -288,11 +306,11 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
 
             if buf != [] as [u8; 0] {
                 return Err(io::Error::other(format!(
-                            "Encountered error after reading message, most likely the message padding was read wrong,\
+                    "Encountered error after reading message, most likely the message padding was read wrong,\
                              please report this issue. The message was decoded to the following fields:\n\n{decoded_values:#?}\n\n\
                              For further diagnosis please provide the following message definition:\n\n\
                              {msg}\n\nAlso provide the raw byte data: {buf:?}"
-                        )).into());
+                )).into());
             }
         }
 
@@ -355,16 +373,15 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                 DataType::I16 | DataType::U16 => 2,
                 DataType::I32 | DataType::U32 | DataType::F32 | DataType::Time => 4,
                 DataType::I64 | DataType::U64 | DataType::F64 => 8,
-                _ => 4, // Default alignment for strings and messages
+                _ => {
+                    4 // Default alignment for strings and messages
+                }
             }
         } else {
             0
         };
 
         let value = match field.datatype() {
-
-
-
             DataType::Bool => r.read_u8().map(|i| i != 0)?.into(),
             DataType::I8(_) => r.read_i8()?.into(),
             DataType::I16 => {
@@ -478,7 +495,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
             None => {
                 r.align_to(4)?;
                 r.read_u32::<LE>()? as usize
-            },
+            }
         };
         // TODO: optimize by checking data type only once
 
@@ -520,7 +537,7 @@ where
             return Ok(()); // No alignment needed
         }
 
-        let cur_pos = self.bytes_read() -4 ;
+        let cur_pos = self.bytes_read() - 4;
         let cur_align = cur_pos % size;
 
         if cur_align > 0 {
