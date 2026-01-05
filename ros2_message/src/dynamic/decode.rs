@@ -304,7 +304,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
             let mut buf = Vec::new();
             r.read_to_end(&mut buf)?;
 
-            if buf != [] as [u8; 0] {
+            if buf.iter().any(|byte| *byte != 0) {
                 return Err(io::Error::other(format!(
                     "Encountered error after reading message, most likely the message padding was read wrong,\
                              please report this issue. The message was decoded to the following fields:\n\n{decoded_values:#?}\n\n\

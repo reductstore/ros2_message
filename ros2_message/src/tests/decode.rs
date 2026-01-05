@@ -91,3 +91,17 @@ bool do_rectify
 
     msg.decode(&mut Cursor::new(CAMERA_INFO_BYTES)).unwrap();
 }
+
+/// Ensure decoding an empty schema does not panic or error.
+#[test]
+fn decode_empty_message() {
+    let empty_schema = "";
+    let msg: DynamicMsg<RandomState> =
+        DynamicMsg::new("std_msgs/msg/Empty", empty_schema).expect("failed to build DynamicMsg");
+
+    let decoded = msg
+        .decode(&[0u8, 1, 0, 0][..])
+        .expect("empty messages should decode without error");
+
+    assert!(decoded.is_empty(), "Empty message should yield no fields");
+}
