@@ -12,7 +12,7 @@ license = "MIT"
 name = "ros2_message"
 readme = "../README.md"
 repository = "https://github.com/reductstore/ros2_message"
-version = "0.1.0"
+version = "0.1.1"
 exclude = ["src/tests/*", "src/parse_msg/tests.rs"]
 
 [features]

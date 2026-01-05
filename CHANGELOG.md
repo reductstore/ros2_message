@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## 0.1.1 - 2025-01-05
+
 ### Fixed
 
 - Dynamic message decoder now tolerates trailing zero padding, preventing false failures on empty messages, [PR-1](https://github.com/reductstore/ros2_message/pull/1)
