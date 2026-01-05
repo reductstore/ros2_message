@@ -7,11 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Regression test for decoding `std_msgs/msg/Empty` with payload `[0, 1, 0, 0]`.
-
 ### Fixed
-- Dynamic message decoder now tolerates trailing zero padding, preventing false failures on empty messages.
+
+- Dynamic message decoder now tolerates trailing zero padding, preventing false failures on empty messages, [PR-1](https://github.com/reductstore/ros2_message/pull/1)
 
 
 ## 0.1.0 - 2025-01-05
