@@ -1,7 +1,7 @@
-use std::hash::RandomState;
-use std::io::Cursor;
 use crate::dynamic::DynamicMsg;
 use crate::Value;
+use std::hash::RandomState;
+use std::io::Cursor;
 
 #[test]
 fn decoding_nested_message() {
@@ -89,7 +89,5 @@ bool do_rectify
         DynamicMsg::new("sensor_msgs/CameraInfo", CAMERA_INFO_SCHEMA)
             .expect("failed to build DynamicMsg");
 
-    let msg = msg
-        .decode(&mut Cursor::new(CAMERA_INFO_BYTES))
-        .unwrap();
+    msg.decode(&mut Cursor::new(CAMERA_INFO_BYTES)).unwrap();
 }

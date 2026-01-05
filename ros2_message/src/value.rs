@@ -13,9 +13,6 @@ use derive_where::derive_where;
 /// Represents an arbitrary ROS message.
 pub type MessageValue<S> = HashMap<String, Value<S>, S>; //  = RandomState
 
-#[derive(PartialEq, Eq, Serialize)]
-pub struct A<S: BuildHasher>(HashMap<String, String, S>); //  = RandomState
-
 /// Represents an arbitrary ROS message or value in it.
 #[derive(Serialize, Deserialize)]
 #[derive_where(Clone, PartialEq, Debug)]

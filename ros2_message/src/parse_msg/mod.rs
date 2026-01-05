@@ -1,8 +1,8 @@
-use std::hash::{BuildHasher, RandomState};
-
 use crate::{Error, FieldCase, FieldInfo, Result};
 use lazy_static::lazy_static;
 use regex::Regex;
+#[allow(unused_imports)]
+use std::hash::{BuildHasher, RandomState};
 
 static IGNORE_WHITESPACE: &str = r"\s*";
 static ANY_WHITESPACE: &str = r"\s+";
