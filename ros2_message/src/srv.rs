@@ -36,7 +36,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Srv<S> {
     /// # Examples
     ///
     /// ```
-    /// # use ros2_message::Srv;
+    /// # type Srv = ros2_message::Srv<std::hash::RandomState>;
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -35,7 +35,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     /// # Examples
     ///
     /// ```
-    /// # use ros2_message::Msg;
+    /// # type Msg = ros2_message::Msg<std::hash::RandomState>;
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -71,7 +71,8 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     /// # Examples
     ///
     /// ```
-    /// # use ros2_message::{Msg, Value};
+    /// # type Msg = ros2_message::Msg<std::hash::RandomState>;
+    /// # type Value = ros2_message::Value<std::hash::RandomState>;
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -133,7 +134,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> Msg<S> {
     /// # Examples
     ///
     /// ```
-    /// # use ros2_message::Msg;
+    /// # type Msg = ros2_message::Msg<std::hash::RandomState>;
     /// # use std::convert::TryInto;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {

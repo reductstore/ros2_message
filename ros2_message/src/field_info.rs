@@ -100,7 +100,7 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
     /// # Examples
     ///
     /// ```
-    /// # use ros2_message::{DataType, FieldInfo, FieldCase};
+    /// # use ros2_message::{DataType, FieldCase, FieldInfo};
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let field = FieldInfo::<std::hash::RandomState>::new("int16", "foo", FieldCase::Vector)?;
@@ -114,7 +114,8 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
     /// ```
     ///
     /// ```
-    /// # use ros2_message::{FieldInfo, FieldCase};
+    /// # use ros2_message::FieldCase;
+    /// # type FieldInfo = ros2_message::FieldInfo<std::hash::RandomState>;
     /// assert!(FieldInfo::new("bad/field/type", "foo", FieldCase::Vector).is_err());
     /// ```
     pub fn new(datatype: &str, name: impl Into<String>, case: FieldCase) -> Result<FieldInfo<S>> {
@@ -210,7 +211,8 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
     /// # Examples
     ///
     /// ```
-    /// # use ros2_message::{DataType, FieldInfo, FieldCase};
+    /// # use ros2_message::{DataType, FieldCase};
+    /// # type FieldInfo = ros2_message::FieldInfo<std::hash::RandomState>;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// assert!(!FieldInfo::new("int16", "foo", FieldCase::Vector)?.is_constant());
@@ -315,7 +317,8 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> FieldInfo<S> {
     /// # Examples
     ///
     /// ```
-    /// # use ros2_message::{FieldInfo, FieldCase};
+    /// # use ros2_message::FieldCase;
+    /// # type FieldInfo = ros2_message::FieldInfo<std::hash::RandomState>;
     /// #
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// assert!(FieldInfo::new("Header", "header", FieldCase::Unit)?.is_header());
