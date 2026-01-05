@@ -37,4 +37,4 @@ in the [examples](https://github.com/A-K-O-R-A/ros2_message/blob/master/examples
   - [ROS2 specific deserialization](https://github.com/foxglove/rosmsg2-serialization/blob/d262e58a47138c4725e0d7a4881eb45c7eea1cc2/src/MessageReader.ts)
   - [CDR implementation](https://github.com/foxglove/cdr/blob/5cdd02e0be6fe5e7f4424f91d59d451f56459d33/src/CdrReader.ts)
   - [Overview of all the CDR encapsulation kinds](https://github.com/foxglove/cdr/blob/5cdd02e0be6fe5e7f4424f91d59d451f56459d33/src/EncapsulationKind.ts)
-  - [ROS2 Message implementation](https://github.com/foxglove/rosmsg/tree/main)
+    - [ROS2 Message implementation](https://github.com/foxglove/rosmsg/tree/main)
