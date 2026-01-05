@@ -490,6 +490,14 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         array_length: Option<usize>,
         r: &mut ByteCounter<R>,
     ) -> Result<Value<S>> {
+        let alignment = match field.datatype() {
+            DataType::Bool | DataType::I8(_) | DataType::U8(_) => 1,
+            DataType::I16 | DataType::U16 => 2,
+            DataType::I32 | DataType::U32 | DataType::F32 | DataType::Time => 4,
+            DataType::I64 | DataType::U64 | DataType::F64 => 8,
+            _ => 4, // strings and nested messages default to 4-byte alignment
+        };
+
         let array_length = match array_length {
             Some(v) => v,
             None => {
@@ -497,6 +505,10 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                 r.read_u32::<LE>()? as usize
             }
         };
+
+        // Align once before reading the array payload. Individual elements skip alignment to avoid
+        // compounding offsets; variable-sized types handle their own alignment internally.
+        r.align_to(alignment)?;
         // TODO: optimize by checking data type only once
 
         let mut values = Vec::with_capacity(array_length);
