@@ -1,5 +1,5 @@
 [workspace]
-members = ["ros2_message", "examples"]
+members = ["ros2_message"]
 resolver = "2"
 
 [profile.release]
