@@ -23,7 +23,6 @@ pub struct DynamicMsg<S: BuildHasher + Default + Clone + core::fmt::Debug = Rand
     dependencies: HashMap<MessagePath, Msg<S>, S>,
 }
 
-
 impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
     /// Create a new `DynamicMsg<S>` by parsing it's message definition. For this to work all of
     /// the messages depencies have to be provided as well, see the example for more.
@@ -177,8 +176,6 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         for field_info in msg.fields().iter() {
             let field_name = field_info.name().to_owned();
 
-
-
             let unnest_values = |value, msg: &Msg<_>| {
                 let Value::Array(nested_values) = value else {
                     return Err(Error::DecodingError {
@@ -199,15 +196,12 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                 offset: 0,
             })?;
 
-
-
             let msg = match field_info.datatype() {
                 DataType::GlobalMessage(path) => Some(self.get_dependency(&path)?),
 
                 DataType::LocalMessage(name) => Some(self.get_dependency(&msg.path().peer(name))?),
                 _ => None,
             };
-
 
             let value = if let Some(msg) = msg {
                 let nested_values = unnest_values(value, msg)?;
@@ -218,15 +212,17 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
                         let mut mapped_msgs = vec![];
                         for nested_value in nested_values.into_iter() {
                             let second_level_unnested = unnest_values(nested_value, msg)?;
-                            let msg= Value::Message(self.map_field_names(msg, &mut VecDeque::from(second_level_unnested))?);
+                            let msg = Value::Message(self.map_field_names(
+                                msg,
+                                &mut VecDeque::from(second_level_unnested),
+                            )?);
                             mapped_msgs.push(msg);
                         }
                         Value::Array(mapped_msgs)
                     }
-                    _ => {
-
-                        Value::Message(self.map_field_names(msg, &mut VecDeque::from(nested_values))?)
-                    }
+                    _ => Value::Message(
+                        self.map_field_names(msg, &mut VecDeque::from(nested_values))?,
+                    ),
                 }
             } else {
                 value
@@ -326,7 +322,9 @@ impl<S: BuildHasher + Default + Clone + core::fmt::Debug> DynamicMsg<S> {
         for field in msg.fields() {
             let res = match field.case() {
                 FieldCase::Const(_) => Ok(field.const_value().unwrap().clone()),
-                FieldCase::Unit | FieldCase::Default(_) => self.decode_field(msg.path(), field, r, true),
+                FieldCase::Unit | FieldCase::Default(_) => {
+                    self.decode_field(msg.path(), field, r, true)
+                }
                 //.expect("Error while decoding unit field"),
                 FieldCase::Vector => self.decode_field_array(msg.path(), field, None, r),
                 //.expect("Error while decoding vector field"),

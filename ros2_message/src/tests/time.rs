@@ -51,12 +51,18 @@ fn duration_from_std_works() {
 
 #[test]
 fn duration_to_std_works() {
-    let msg_duration = Duration { sec: 123, nsec: 456 };
+    let msg_duration = Duration {
+        sec: 123,
+        nsec: 456,
+    };
     let std_duration = time::Duration::from(msg_duration);
     assert_eq!(std_duration.as_secs(), 123);
     assert_eq!(std_duration.subsec_nanos(), 456);
 
-    let msg_duration2 = Duration { sec: 9876, nsec: 54321 };
+    let msg_duration2 = Duration {
+        sec: 9876,
+        nsec: 54321,
+    };
     let std_duration2: time::Duration = msg_duration2.into();
     assert_eq!(std_duration2.as_secs(), 9876);
     assert_eq!(std_duration2.subsec_nanos(), 54321);
@@ -77,15 +83,41 @@ fn time_from_std_works() {
 
 #[test]
 fn time_to_std_works() {
-    let msg_time = Time { sec: 123, nsec: 456 };
+    let msg_time = Time {
+        sec: 123,
+        nsec: 456,
+    };
     let std_time = time::SystemTime::from(msg_time);
-    assert_eq!((std_time.duration_since(time::SystemTime::UNIX_EPOCH)).unwrap().as_secs(), 123);
-    assert_eq!((std_time.duration_since(time::SystemTime::UNIX_EPOCH)).unwrap().subsec_nanos(), 456);
+    assert_eq!(
+        (std_time.duration_since(time::SystemTime::UNIX_EPOCH))
+            .unwrap()
+            .as_secs(),
+        123
+    );
+    assert_eq!(
+        (std_time.duration_since(time::SystemTime::UNIX_EPOCH))
+            .unwrap()
+            .subsec_nanos(),
+        456
+    );
 
-    let msg_time2 = Time { sec: 9876, nsec: 54321 };
+    let msg_time2 = Time {
+        sec: 9876,
+        nsec: 54321,
+    };
     let std_time2: time::SystemTime = msg_time2.into();
-    assert_eq!((std_time2.duration_since(time::SystemTime::UNIX_EPOCH)).unwrap().as_secs(), 9876);
-    assert_eq!((std_time2.duration_since(time::SystemTime::UNIX_EPOCH)).unwrap().subsec_nanos(), 54321);
+    assert_eq!(
+        (std_time2.duration_since(time::SystemTime::UNIX_EPOCH))
+            .unwrap()
+            .as_secs(),
+        9876
+    );
+    assert_eq!(
+        (std_time2.duration_since(time::SystemTime::UNIX_EPOCH))
+            .unwrap()
+            .subsec_nanos(),
+        54321
+    );
 }
 
 #[test]
@@ -177,8 +209,8 @@ fn display_decimals() {
     let time = Duration::from_nanos(-654000);
     assert_eq!(format!("{}", time), "-0.000654000");
 
-    let time = Duration{sec: -1, nsec: 1};
+    let time = Duration { sec: -1, nsec: 1 };
     assert_eq!(format!("{}", time), "-0.999999999");
-    let time = Duration{sec: -1, nsec: -1};
+    let time = Duration { sec: -1, nsec: -1 };
     assert_eq!(format!("{}", time), "-1.000000001");
 }
